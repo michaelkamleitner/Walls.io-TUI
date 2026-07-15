@@ -30,8 +30,10 @@ interface View {
   zoom: number;
 }
 
-// Largest zoom (2..11) where all points fit the stage, centered on the
+// Largest zoom (0..11) where all points fit the stage, centered on the
 // bounding box. Zoom scales world pixels by 2^z, so measure at z=0.
+// Zoom 0/1 (whole-world) must stay reachable: an India + Florida wall
+// needs it, and clamping higher pushes markers off the stage entirely.
 function fitView(points: GeoPost[], cols: number, rows: number): View {
   const lats = points.map((p) => p.lat);
   const lons = points.map((p) => p.lon);
@@ -46,7 +48,7 @@ function fitView(points: GeoPost[], cols: number, rows: number): View {
   // Supersampled canvas is cols*2 × rows*4; leave a 15% margin.
   const fitX = spanX > 0 ? Math.log2((cols * 2 * 0.85) / spanX) : 11;
   const fitY = spanY > 0 ? Math.log2((rows * 4 * 0.85) / spanY) : 11;
-  const zoom = Math.max(2, Math.min(11, Math.floor(Math.min(fitX, fitY))));
+  const zoom = Math.max(0, Math.min(11, Math.floor(Math.min(fitX, fitY))));
   return { ...center, zoom };
 }
 
@@ -113,14 +115,16 @@ export function WorldLayout({ posts, now, width, height }: WorldLayoutProps) {
           y: Math.round(mapRows + (wp.y - centerWorld.y) / 2),
         };
       };
+      // Every post gets the full-size amber marker (same as the Map
+      // layout); the selected one is bigger with a white-hot core.
       for (let i = 0; i < geoPosts.length; i++) {
         if (i === current) continue;
         const { x, y } = toGrid(geoPosts[i]);
-        paintMarker(image, x, y, { radius: 1.3, core: "#d98a1f", mid: "#c25e00", edge: "#8a4200" });
+        paintMarker(image, x, y);
       }
       if (selected) {
         const { x, y } = toGrid(selected);
-        paintMarker(image, x, y);
+        paintMarker(image, x, y, { radius: 3.6, core: "#ffffff" });
       }
       setStage(image);
     });
