@@ -1,13 +1,37 @@
 /*
- * walls.io broadcaster client — TypeScript/TUI port of ../wall-client.js
+ * walls.io broadcaster client — TypeScript/TUI port of the original
+ * wall-client.js (removed from the working tree; see git history).
  *
  * Same layout-agnostic data layer as the browser original: connects to the
  * walls.io broadcaster (Socket.IO) for a single wall, keeps a de-duplicated,
  * sorted list of posts ("checkins"), and notifies the view via a `change`
- * callback. The protocol notes live in the header of ../wall-client.js —
- * this port mirrors its behavior 1:1 (sort order, dedupe, pagination cursor
- * inside `lowestCheckin`, empty-page exhaustion heuristic, microtask
- * coalescing).
+ * callback. This port mirrors its behavior 1:1 (sort order, dedupe,
+ * pagination cursor inside `lowestCheckin`, empty-page exhaustion heuristic,
+ * microtask coalescing).
+ *
+ * Protocol, reverse-engineered from walls.io's own wall-fluid.js:
+ *
+ *   server -> client
+ *     'new checkins'         Array<Checkin>   fresh posts (initial + live; a
+ *                                             re-shown post comes back here)
+ *     'old checkins'         Array<Checkin>   paginated history
+ *     'no more old checkins' ()               pagination done
+ *     'update checkin data'  Checkin          partial update (weight, pin,
+ *                                             moderation, …)
+ *     'removed checkins'     Array<Id>        posts hidden/deleted by admin
+ *     'looped post'          Checkin          single post being looped to top
+ *     'wallping'             { serverStartedAt, serverTime }   keepalive
+ *     'reload wall'          ()               server asks client to reload
+ *
+ *   client -> server
+ *     'request older checkins' {
+ *       count, network,
+ *       lowestCheckin: { sortings, is_pinned, <sortField>, id }
+ *     }   — used by `loadOlder(count)` to paginate history. The cursor
+ *           lives under `lowestCheckin` (not at the top level — that's the
+ *           bit easy to miss; mirrors wall-fluid.js). Server replies with
+ *           an `old checkins` page, or `no more old checkins` when done.
+ *     'get single checkin'     id, callback  (supported, not currently used)
  *
  * Differences from the browser version, all forced by the terminal target:
  *   - `io` comes from the socket.io-client package, not `window.io`.
