@@ -1,0 +1,214 @@
+/* Default layout — a responsive masonry grid powered by masonry-layout.
+   Column count is driven by CSS (the sizer element's width), so resizing
+   the viewport reflows naturally without any JS breakpoint logic. */
+
+:root {
+  /* Outer wrapper width shared by the feed grid and the infinite-scroll
+     status line, so they stay aligned at the widest breakpoint. */
+  --feed-max-width: 1800px;
+}
+
+html { box-sizing: border-box; }
+*, *::before, *::after { box-sizing: inherit; }
+
+body {
+  font: 16px/1.45 -apple-system, system-ui, sans-serif;
+  margin: 0;
+  padding: max(env(safe-area-inset-top), 16px) max(env(safe-area-inset-right), 16px) max(env(safe-area-inset-bottom), 16px) max(env(safe-area-inset-left), 16px);
+  background: #fafafa;
+  color: #222;
+}
+
+/* ---- Masonry grid -------------------------------------------------------
+   Sizing rules:
+     - .grid-sizer / .grid-item width is set per-breakpoint below.
+     - Masonry is initialised with `columnWidth: '.grid-sizer'` and
+       `percentPosition: true`, so column count = container / sizer width.
+     - `gutter` is the horizontal gap; vertical gap is just margin-bottom
+       on the items.
+   Breakpoints follow the responsive checklist in CUSTOMIZE.md
+   (320 / 414 / 768 / 1024 / 1440 / 1920). */
+
+.grid {
+  max-width: var(--feed-max-width);
+  margin: 0 auto;
+}
+
+/* Infinite scroll: a 1 px sentinel below the feed is watched by an
+   IntersectionObserver; when it enters the viewport (+600 px rootMargin)
+   the layout asks the client for the next page of older posts. The status
+   line below reports loading / end-of-feed back to the user. */
+#feed-sentinel { height: 1px; }
+#feed-status {
+  max-width: var(--feed-max-width);
+  margin: 0 auto;
+  text-align: center;
+  color: #888;
+  font-size: 13px;
+  padding: 16px 0;
+  min-height: 1.5em;
+}
+
+.grid-sizer,
+.grid-item {
+  width: 100%;            /* 1 column on phones */
+}
+
+@media (min-width: 480px)  { .grid-sizer, .grid-item { width: calc((100% - 16px) / 2); } }
+@media (min-width: 800px)  { .grid-sizer, .grid-item { width: calc((100% - 32px) / 3); } }
+@media (min-width: 1200px) { .grid-sizer, .grid-item { width: calc((100% - 48px) / 4); } }
+@media (min-width: 1600px) { .grid-sizer, .grid-item { width: calc((100% - 64px) / 5); } }
+
+.grid-item {
+  background: #fff;
+  border: 1px solid #d8d8db;
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05), 0 4px 12px rgba(0, 0, 0, 0.04);
+  /* Avoid horizontal-overflow flashes before masonry has positioned
+     items absolutely. */
+  float: left;
+  /* Break unbreakable strings (long URLs, crypto addresses, hashtags
+     without spaces) so they wrap inside the card instead of pushing the
+     card wider than its column. See CUSTOMIZE.md → Long unbreakable strings. */
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.grid-item.pinned {
+  border-color: #f5c542;
+  box-shadow: 0 0 0 2px #f5c542 inset, 0 2px 8px rgba(245, 197, 66, 0.25);
+}
+.grid-item.pinned::before {
+  content: "📌";
+  margin-right: 6px;
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #888;
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+.meta-text { min-width: 0; flex: 1; }
+.meta-sub  { margin-top: 2px; }
+
+.author {
+  display: inline-block;
+  color: #222;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 13px;
+  line-height: 1.2;
+}
+.author:hover { text-decoration: underline; }
+
+.avatar-link {
+  display: inline-block;
+  flex-shrink: 0;
+  border-radius: 50%;
+}
+
+.avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #e5e5ea;
+  flex-shrink: 0;
+  display: block;
+}
+.avatar--placeholder {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 12px;
+  color: #666;
+}
+.timestamp {
+  color: inherit;
+  text-decoration: none;
+  /* 44 × 44 tap target — see CUSTOMIZE.md → Responsive design. */
+  display: inline-block;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 12px 4px;
+  margin: -12px 0;
+  vertical-align: middle;
+}
+.timestamp:hover { text-decoration: underline; }
+
+/* Links inside post text (hashtags, @mentions, URLs from html_comment).
+   Match body text colour so the post reads as prose, not as a wall of
+   blue links — the underline + hover state is enough affordance. */
+.comment a {
+  color: #222;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+.comment a:hover {
+  color: #888;
+}
+
+.comment .more {
+  color: #fff;
+  text-decoration: underline;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.comment .more:hover { text-decoration-thickness: 2px; }
+
+.type {
+  display: inline-block;
+  padding: 1px 6px;
+  margin-right: 6px;
+  background: #eef;
+  border-radius: 3px;
+  font-size: 11px;
+  color: #446;
+}
+
+.checkin-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin-top: 8px;
+  border-radius: 4px;
+}
+
+/* Call-to-action button attached to a post (post.cta). Yellow pill, centered
+   under the card content. Sized to clear the 44 × 44 px tap-target rule. */
+.cta-button {
+  display: block;
+  margin: 10px auto 2px;
+  padding: 6px 16px;
+  background: #f2f2f4;
+  color: #222;
+  border: 1px solid #d8d8db;
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  text-align: center;
+  text-decoration: none;
+  border-radius: 4px;
+  width: fit-content;
+  max-width: 100%;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+.cta-button:hover { background: #e8e8eb; border-color: #c4c4c8; }
+.cta-button:focus-visible { outline: 2px solid #888; outline-offset: 2px; }
+
+/* Inline images inside the comment text are emoji (Twemoji 72×72 PNGs).
+   Render them at text size so they don't blow up the layout. */
+.comment img {
+  height: 1em;
+  width: 1em;
+  vertical-align: -0.15em;
+  margin: 0 1px;
+}
+

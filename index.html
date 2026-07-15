@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>walls.io broadcaster clone — cventconnect</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div id="feed" class="grid">
+  <div class="grid-sizer"></div>
+</div>
+<div id="feed-sentinel" aria-hidden="true"></div>
+<div id="feed-status" role="status" aria-live="polite"></div>
+
+<!--
+  wall-client.js  – data layer: socket, sort, dedupe, hide/show events
+  layout.js       – view layer: turns Post[] into DOM (swap this per layout)
+  styles.css      – styles for the current layout
+  socket.io       – public CDN build of socket.io-client; the walls.io
+                    broadcaster speaks plain Socket.IO, so any modern client
+                    works (verified against 4.7.x).
+  masonry         – MIT, https://masonry.desandro.com — free cascading-grid
+                    layout. See CUSTOMIZE.md → Multi-column layouts.
+  imagesLoaded    – MIT, paired with masonry to re-layout once <img> tags
+                    have known dimensions.
+-->
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"
+        integrity="sha384-2huaZvOR9iDzHqslqwpR87isEmrfxqyWOF7hr7BY6KG0+hVKLoEXMPUJw3ynWuhO"
+        crossorigin="anonymous"></script>
+<script src="https://unpkg.com/masonry-layout@4.2.2/dist/masonry.pkgd.min.js"></script>
+<script src="https://unpkg.com/imagesloaded@5.0.0/imagesloaded.pkgd.min.js"></script>
+<script src="wall-client.js"></script>
+<script src="layout.js"></script>
+
+</body>
+</html>
