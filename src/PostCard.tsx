@@ -4,7 +4,10 @@ import { postBody, URL_RE } from "./links";
 import { wrapText } from "./masonry";
 import { imageToPixels, type PixelImage } from "./pixels";
 import { networkBadge, networkColor, theme } from "./theme";
+import { videoToPixelFrames } from "./video";
 import { imageUrl, parseCta, relativeTime, safeUrl, type Post } from "./wall-client";
+
+const SLIDESHOW_INTERVAL_MS = 800;
 
 function usePixelImage(url: string, cols: number): PixelImage | null {
   const [pixels, setPixels] = useState<PixelImage | null>(null);
@@ -20,6 +23,45 @@ function usePixelImage(url: string, cols: number): PixelImage | null {
     };
   }, [url, cols]);
   return pixels;
+}
+
+// ffmpeg-extracted frames playing as a looping slideshow. `slideshow` is
+// null while extraction runs or after it fails — callers fall back to the
+// poster image; `pending` distinguishes "still extracting" from "gave up".
+function useVideoSlideshow(
+  url: string,
+  cols: number,
+): {
+  slideshow: { frame: PixelImage; index: number; count: number } | null;
+  pending: boolean;
+} {
+  const [frames, setFrames] = useState<PixelImage[] | null>(null);
+  const [index, setIndex] = useState(0);
+  useEffect(() => {
+    let alive = true;
+    setFrames(null);
+    setIndex(0);
+    if (!url || cols < 4) return;
+    videoToPixelFrames(url, cols).then((result) => {
+      if (alive) setFrames(result ?? []); // [] = extraction failed
+    });
+    return () => {
+      alive = false;
+    };
+  }, [url, cols]);
+  useEffect(() => {
+    if (!frames || frames.length < 2) return;
+    const timer = setInterval(
+      () => setIndex((i) => (i + 1) % frames.length),
+      SLIDESHOW_INTERVAL_MS,
+    );
+    return () => clearInterval(timer);
+  }, [frames]);
+  if (!frames?.length) return { slideshow: null, pending: !!url && frames === null };
+  return {
+    slideshow: { frame: frames[index % frames.length], index, count: frames.length },
+    pending: false,
+  };
 }
 
 export interface PostCardProps {
@@ -49,6 +91,12 @@ export function PostCard({ post, innerWidth, now, selected }: PostCardProps) {
   const hasImage = !!(post.post_image_unique_id || post.post_image);
   const src = hasImage ? imageUrl(post, { w: Math.max(160, innerWidth * 4), webp: 0 }) : "";
   const pixels = usePixelImage(src, innerWidth);
+
+  // Videos: play extracted frames as a slideshow; poster stays as the
+  // fallback while frames extract (or when ffmpeg is unavailable).
+  const videoUrl = post.is_video ? safeUrl(post.post_video) : "";
+  const { slideshow, pending: videoPending } = useVideoSlideshow(videoUrl, innerWidth);
+  const stills = slideshow ? [slideshow.frame] : pixels ? [pixels] : null;
 
   const highlight = { fg: theme.bg, bg: theme.amber } as const;
 
@@ -123,14 +171,14 @@ export function PostCard({ post, innerWidth, now, selected }: PostCardProps) {
         <box style={{ flexDirection: "column", marginTop: 1 }}>{bodyLines.map(renderBodyLine)}</box>
       ) : null}
 
-      {hasImage && !pixels ? (
+      {!stills && (hasImage || videoPending) ? (
         <text fg={theme.dim} style={{ marginTop: 1 }}>
           ░▒▓ receiving image…
         </text>
       ) : null}
-      {pixels ? (
+      {stills ? (
         <box style={{ flexDirection: "column", marginTop: 1 }}>
-          {pixels.map((runs, y) => (
+          {stills[0].map((runs, y) => (
             <text key={y} style={{ wrapMode: "none" }}>
               {runs.map((run, i) => (
                 <span key={i} fg={run.fg} bg={run.bg}>
@@ -144,7 +192,9 @@ export function PostCard({ post, innerWidth, now, selected }: PostCardProps) {
 
       {post.is_video ? (
         <text fg={theme.dim} style={{ marginTop: 1 }}>
-          ▶ VIDEO — watch at the source ↗
+          {slideshow
+            ? `▶ VIDEO · frame ${slideshow.index + 1}/${slideshow.count} · watch at the source ↗`
+            : "▶ VIDEO — watch at the source ↗"}
         </text>
       ) : null}
 

@@ -65,6 +65,9 @@ export interface Post {
   post_image_width?: number;
   post_image_height?: number;
   is_video?: number | boolean;
+  post_video?: string;
+  post_video_width?: number;
+  post_video_height?: number;
   post_link?: string;
   cta?: string | { text?: string; url?: string; label?: string; link?: string };
   weight?: number;

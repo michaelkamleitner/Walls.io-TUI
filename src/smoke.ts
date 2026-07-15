@@ -6,6 +6,7 @@
  *   npm run smoke -- --wall 186670
  */
 import { imageToPixels } from "./pixels";
+import { hasFfmpeg, videoToPixelFrames } from "./video";
 import {
   createWallClient,
   imageUrl,
@@ -72,6 +73,23 @@ if (withImage) {
   }
 } else {
   console.log("\n[pixels] no post with an image in the snapshot");
+}
+
+const video = posts.find((p) => p.is_video && p.post_video);
+if (!video) {
+  console.log("\n[video] no video post in the snapshot");
+} else if (!(await hasFfmpeg())) {
+  console.log("\n[video] ffmpeg not installed — slideshow disabled");
+} else {
+  console.log(`\n[video] extracting frames from ${String(video.post_video).slice(0, 80)}…`);
+  const t0 = Date.now();
+  const frames = await videoToPixelFrames(String(video.post_video), 40);
+  console.log(`[video] ${frames?.length ?? 0} frames in ${Date.now() - t0}ms (cached on disk)`);
+  // Different cols → different memo key, same disk cache entry: this
+  // measures the disk-cache hit, not the in-memory one.
+  const again = Date.now();
+  await videoToPixelFrames(String(video.post_video), 41);
+  console.log(`[video] disk-cache re-read in ${Date.now() - again}ms`);
 }
 
 client.stop();

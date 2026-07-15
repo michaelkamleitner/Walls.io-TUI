@@ -53,11 +53,20 @@ function grayHex(norm: number): string {
 }
 
 async function render(url: string, cols: number, maxRows: number): Promise<PixelImage | null> {
-  if (!url || cols < 4) return null;
+  if (!url) return null;
   const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
   if (!res.ok) return null;
-  const buf = await res.arrayBuffer();
-  const image = await Jimp.fromBuffer(buf);
+  return bufferToPixels(await res.arrayBuffer(), cols, maxRows);
+}
+
+/** Decode an already-fetched image (jpeg/png/…) into pixel runs. */
+export async function bufferToPixels(
+  buf: ArrayBuffer | Buffer,
+  cols: number,
+  maxRows = IMAGE_MAX_ROWS,
+): Promise<PixelImage | null> {
+  if (cols < 4) return null;
+  const image = await Jimp.fromBuffer(buf as ArrayBuffer);
 
   // Pixel grid: width = cols (always the full column width), height =
   // 2 pixels per terminal row. Very tall images get center-cropped to

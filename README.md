@@ -17,6 +17,9 @@ on [Bun](https://bun.sh).
   look washed out in 256-color terminals.
 - Optional: a terminal with OSC-8 hyperlink support makes every link
   Cmd/Ctrl-clickable too.
+- Optional: **ffmpeg** on your PATH turns video posts into animated
+  slideshows (see *Video slideshows*). Without it, videos show their
+  poster image.
 
 ## Install
 
@@ -82,12 +85,26 @@ scrolls its card into view.
 | ------------------ | ------------------------------------------------------------------------------------- |
 | `src/wall-client.ts` | Data layer: Socket.IO connection to the walls.io broadcaster, dedupe, sorting, pagination. The full protocol reference is in the file header. |
 | `src/pixels.ts`    | Image → half-block pixels: two square-ish grayscale pixels per cell via `▀` (fg = top, bg = bottom), 64 shades, contrast-stretched. |
+| `src/video.ts`     | Video → slideshow: ffmpeg frame extraction with an on-disk cache and a 2-process cap.  |
 | `src/masonry.ts`   | Greedy shortest-column packing with card-height estimation, plus the JS word-wrapper. |
 | `src/App.tsx`      | Feed shell: responsive columns, infinite scroll, keyboard handling, link registry.    |
 | `src/PostCard.tsx` | One post: author, timestamp, body, image, video tag, CTA — all hyperlinked.           |
 
 The feed loads 100 posts up front and pages in older ones as you scroll.
 Live events (new posts, edits, pins, admin hide/unhide) apply in place.
+
+### Video slideshows
+
+When ffmpeg is installed, each video post is turned into a looping
+slideshow: up to 10 frames are extracted directly from the source video
+URL, spread evenly across the clip (`ffprobe` reads the duration), and
+played at ~0.8 s per frame through the same pixel renderer as images.
+
+Extracted frames are cached as JPEGs in `~/.cache/walls-tui/frames/<hash>/`,
+so a wall full of videos only pays the extraction cost on first view —
+delete that directory any time to reclaim space. At most two ffmpeg
+processes run at once; until a video's frames are ready (or if extraction
+fails) the card shows the regular poster image.
 
 ## Development
 

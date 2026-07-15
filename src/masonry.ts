@@ -100,11 +100,15 @@ export function estimateCardHeight(post: Post, innerWidth: number): number {
   let h = 2 + 1 + 1;
   const body = truncateText(plainComment(post));
   if (body) h += 1 + wrapText(body, innerWidth).length;
-  if (post.post_image_unique_id || post.post_image) {
+  // Posters and video slideshows render at the same size, so one estimate
+  // covers both (video-only posts use the video's aspect ratio).
+  if (post.post_image_unique_id || post.post_image || post.is_video) {
     const ratio =
       post.post_image_width && post.post_image_height
         ? post.post_image_height / post.post_image_width
-        : 0.75;
+        : post.post_video_width && post.post_video_height
+          ? post.post_video_height / post.post_video_width
+          : 0.75;
     // Full column width, center-cropped past IMAGE_MAX_ROWS — same math as
     // pixels.ts render().
     h += 1 + Math.min(IMAGE_MAX_ROWS, Math.max(1, Math.round((innerWidth * ratio) / 2)));
