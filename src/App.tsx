@@ -156,10 +156,6 @@ export function App({ wallId, network }: AppProps) {
       case "pageup":
         sb?.scrollBy(-page);
         break;
-      case "g":
-        if (key.shift) sb?.scrollTo(sb.scrollHeight);
-        else sb?.scrollTo(0);
-        break;
       case "r":
         client.restart();
         break;
@@ -197,6 +193,8 @@ export function App({ wallId, network }: AppProps) {
           alignItems: "flex-end",
           paddingLeft: 1,
           paddingRight: 1,
+          marginTop: 1,
+          marginBottom: 1,
           flexShrink: 0,
         }}
       >
@@ -241,13 +239,19 @@ export function App({ wallId, network }: AppProps) {
         }}
       >
         {posts.length === 0 ? (
-          <box style={{ padding: 2, alignItems: "center" }}>
+          // key: force a fresh renderable on the empty↔feed swap — reusing
+          // the same box leaves this padding stuck on the feed container
+          // (removed props aren't reset by the reconciler in OpenTUI 0.4.3).
+          <box key="empty" style={{ padding: 2, alignItems: "center" }}>
             <text fg={theme.greenDim} attributes={TextAttributes.BOLD}>
               ░▒▓ AWAITING TRANSMISSION ▓▒░
             </text>
           </box>
         ) : (
-          <box style={{ flexDirection: "row", width: "100%", alignItems: "flex-start", gap }}>
+          <box
+            key="feed"
+            style={{ flexDirection: "row", width: "100%", alignItems: "flex-start", gap }}
+          >
             {columns.map((columnPosts, i) => (
               <box
                 key={i}
@@ -290,8 +294,7 @@ export function App({ wallId, network }: AppProps) {
         <text fg={theme.dim}>
           <span fg={theme.green}>←/→</span> links · <span fg={theme.green}>↵</span> open ·{" "}
           <span fg={theme.green}>j/k</span> scroll · <span fg={theme.green}>d/u</span> page ·{" "}
-          <span fg={theme.green}>g/G</span> top/end · <span fg={theme.green}>r</span> reload ·{" "}
-          <span fg={theme.green}>q</span> quit
+          <span fg={theme.green}>r</span> reload · <span fg={theme.green}>q</span> quit
         </text>
         <text fg={theme.dim}>{exhausted ? "END OF FEED" : "SCROLL FOR MORE"}</text>
       </box>
