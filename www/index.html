@@ -2,6 +2,14 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
+  <script>
+    // Some static hosts (Laravel Herd among them) serve directory URLs
+    // without redirecting to the trailing-slash form, which breaks all
+    // relative asset paths. Fix the URL before anything is fetched.
+    if (location.protocol !== "file:" && !/\/$|\.[a-z0-9]+$/i.test(location.pathname)) {
+      location.replace(location.pathname + "/" + location.search + location.hash);
+    }
+  </script>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Walls.TUI — your social wall, in the terminal</title>
   <meta name="description" content="Walls.TUI streams your walls.io social wall straight into the terminal: photos in 64 shades of half-block pixels, ffmpeg video slideshows, rasterized OpenStreetMap layouts and more. No browser required.">
