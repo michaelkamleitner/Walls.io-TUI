@@ -67,10 +67,26 @@ picks the starting one.
   every 5 seconds; manual navigation resets the timer.
 - **Map** — a slideshow over the wall's *geotagged* posts: a full-bleed
   rasterized OpenStreetMap view centered on each post's coordinates
-  (◉ marks the spot), with the post floating in a card. Same navigation
-  as Kiosk. Tiles come from tile.openstreetmap.org and are cached in
-  `~/.cache/walls-tui/tiles/`; walls without lat/long data show a hint
-  to switch layouts.
+  (a glowing orange marker), with the post floating in a card. Same
+  navigation as Kiosk. Tiles come from tile.openstreetmap.org and are
+  cached in `~/.cache/walls-tui/tiles/`; walls without lat/long data
+  show a hint to switch layouts.
+- **World** — all geotagged posts on one zoomed-out map, auto-fit to
+  their bounding box: small dots for every post, the full marker on the
+  selected one, cycling like a slideshow.
+- **Ticker** — the wall as a live terminal tail: a dense chronological
+  stream (`[10:53 PM] ▌author · TWITTER › …`), sticking to the bottom
+  as new posts arrive, like tailing a log file.
+- **Theater** — a media-only, full-bleed photo slideshow with real
+  dissolve transitions (pixel grays interpolated over ~600 ms) and a
+  thin caption strip.
+- **Dashboard** — mission control: stat tiles, posts-per-network bars
+  in brand colors, a 24-hour activity sparkline, a top-authors
+  leaderboard with pixel avatars, and the latest posts.
+- **Channels** — TweetDeck-style: one independently scrolling column
+  per network, ordered by volume, headers in brand colors.
+- **Screensaver** — three post cards drift and bounce DVD-logo style;
+  every wall hit swaps in the next post. Space pauses.
 
 ## Keyboard
 
@@ -100,7 +116,7 @@ scrolls its card into view. Link selection and post focus stay in sync:
 browsing links moves the green post highlight along, and after `Tab`bing
 to a post, `→` starts at that post's first link.
 
-Kiosk / Map:
+Slideshows (Kiosk / Map / World / Theater):
 
 | Key             | Action                                  |
 | --------------- | --------------------------------------- |
@@ -109,13 +125,17 @@ Kiosk / Map:
 | `Enter`         | open the current post in your browser   |
 | `Esc`           | quit                                    |
 
+Ticker: `j`/`k`/`d`/`u` scroll back through history (the tail re-engages
+at the bottom). Channels: `←`/`→` pick the active column, `j`/`k`/`d`/`u`
+scroll it. Screensaver: `Space` pauses. Dashboard has no keys of its own.
+
 ## Options
 
 | Flag              | Default  | Meaning                                   |
 | ----------------- | -------- | ----------------------------------------- |
 | `--wall <id>`     | `186670` | walls.io wall id to subscribe to          |
 | `--network <net>` | all      | only show one network (e.g. `instagram`)  |
-| `--layout <name>` | `fluid`  | starting layout: `fluid`, `kiosk`, `map`  |
+| `--layout <name>` | `fluid`  | starting layout: `fluid`, `kiosk`, `map`, `world`, `ticker`, `theater`, `dashboard`, `channels`, `screensaver` |
 
 ## How it works
 
@@ -129,6 +149,12 @@ Kiosk / Map:
 | `src/FluidLayout.tsx` | Masonry feed: responsive columns, infinite scroll, keyboard link navigation.        |
 | `src/KioskLayout.tsx` | Slideshow: one large post, 5 s auto-advance, Space/arrow navigation.                |
 | `src/MapLayout.tsx` / `src/map.ts` | Geo slideshow: OSM tile fetch + compose + rasterize, marker, floating post card. |
+| `src/WorldLayout.tsx` | All geo posts on one auto-fit map with per-post markers.                            |
+| `src/TickerLayout.tsx` | Chronological live tail with sticky-bottom scroll.                                 |
+| `src/TheaterLayout.tsx` | Full-bleed photo slideshow with luminance-grid dissolve transitions.              |
+| `src/DashboardLayout.tsx` | Live stats: network bars, activity sparkline, top authors, latest posts.        |
+| `src/ChannelsLayout.tsx` | Per-network columns with independent scrolling.                                  |
+| `src/ScreensaverLayout.tsx` | Bouncing post cards (DVD-logo mode).                                          |
 | `src/PostCard.tsx` | One post: author, timestamp, body, image, video tag, CTA — all hyperlinked.           |
 
 The feed loads 100 posts up front and pages in older ones as you scroll.

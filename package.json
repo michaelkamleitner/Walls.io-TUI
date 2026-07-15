@@ -8,6 +8,7 @@
     "build": "bun build --compile src/index.tsx --outfile walls-tui",
     "smoke": "bun run src/smoke.ts",
     "test:render": "bun run src/render-test.tsx",
+    "test:tour": "bun run src/layout-tour.tsx",
     "typecheck": "tsc --noEmit"
   },
   "keywords": [],

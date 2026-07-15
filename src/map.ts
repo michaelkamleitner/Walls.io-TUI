@@ -59,7 +59,7 @@ async function loadTile(zoom: number, x: number, y: number): Promise<Buffer | nu
 }
 
 // Web-Mercator world pixel position of a coordinate at a zoom level.
-function worldPixel(lat: number, lon: number, zoom: number): { x: number; y: number } {
+export function worldPixel(lat: number, lon: number, zoom: number): { x: number; y: number } {
   const n = 2 ** zoom;
   const rad = (lat * Math.PI) / 180;
   const xt = ((lon + 180) / 360) * n;
@@ -150,44 +150,56 @@ function paintHalfPixel(
 }
 
 // The marker: an anti-aliased disc drawn in pixel space (half-block pixels
-// are ~square, so it reads as a true circle) — light-orange core through
-// the theme amber to a dark-orange rim, with the outermost ring blended
-// into the map underneath.
-const MARKER_RADIUS = 2.6;
-const MARKER_CORE = "#ffd75f";
-const MARKER_EDGE = "#c25e00";
+// are ~square, so it reads as a true circle) — light core through the mid
+// color to a dark rim, with the outermost ring blended into the map
+// underneath. Radius/colors are configurable so the World layout can paint
+// small muted dots for unselected posts.
+export interface MarkerOptions {
+  radius?: number;
+  core?: string;
+  mid?: string;
+  edge?: string;
+}
 
-function paintMarker(image: PixelImage, cx: number, cy: number) {
-  const reach = MARKER_RADIUS + 1;
+export function paintMarker(image: PixelImage, cx: number, cy: number, opts: MarkerOptions = {}) {
+  const radius = opts.radius ?? 2.6;
+  const core = opts.core ?? "#ffd75f";
+  const mid = opts.mid ?? theme.amber;
+  const edge = opts.edge ?? "#c25e00";
+  const reach = radius + 1;
   for (let py = Math.floor(cy - reach); py <= Math.ceil(cy + reach); py++) {
     for (let px = Math.floor(cx - reach); px <= Math.ceil(cx + reach); px++) {
       const d = Math.hypot(px - cx, py - cy);
-      if (d <= MARKER_RADIUS) {
-        const t = d / MARKER_RADIUS;
-        const color =
-          t < 0.45 ? mixHex(MARKER_CORE, theme.amber, t / 0.45) : mixHex(theme.amber, MARKER_EDGE, (t - 0.45) / 0.55);
+      if (d <= radius) {
+        const t = d / radius;
+        const color = t < 0.45 ? mixHex(core, mid, t / 0.45) : mixHex(mid, edge, (t - 0.45) / 0.55);
         paintHalfPixel(image, px, py, () => color);
-      } else if (d <= MARKER_RADIUS + 0.7) {
-        const coverage = (MARKER_RADIUS + 0.7 - d) / 0.7;
-        paintHalfPixel(image, px, py, (current) => mixHex(current, MARKER_EDGE, coverage));
+      } else if (d <= radius + 0.7) {
+        const coverage = (radius + 0.7 - d) / 0.7;
+        paintHalfPixel(image, px, py, (current) => mixHex(current, edge, coverage));
       }
     }
   }
 }
 
+export function clonePixelImage(image: PixelImage): PixelImage {
+  return image.map((line) => line.map((run) => ({ ...run })));
+}
+
 const memo = new Map<string, Promise<PixelImage | null>>();
 
 /**
- * Render a map centered on (lat, lon) as `cols` × `rows` terminal cells,
- * marker at the center. `rows` is exact (unlike photos, a map has no
- * intrinsic aspect ratio to respect).
+ * Render a marker-less map centered on (lat, lon) as `cols` × `rows`
+ * terminal cells. `rows` is exact (unlike photos, a map has no intrinsic
+ * aspect ratio to respect). The result is memoized and shared — clone
+ * before painting on it.
  */
-export function mapToPixels(
+export function renderMapImage(
   lat: number,
   lon: number,
+  zoom: number,
   cols: number,
   rows: number,
-  zoom = MAP_ZOOM,
 ): Promise<PixelImage | null> {
   const key = `${cols}x${rows}z${zoom}@${lat.toFixed(4)},${lon.toFixed(4)}`;
   let entry = memo.get(key);
@@ -196,6 +208,22 @@ export function mapToPixels(
     memo.set(key, entry);
   }
   return entry;
+}
+
+/** Map centered on (lat, lon) with the standard marker at the center. */
+export async function mapToPixels(
+  lat: number,
+  lon: number,
+  cols: number,
+  rows: number,
+  zoom = MAP_ZOOM,
+): Promise<PixelImage | null> {
+  const base = await renderMapImage(lat, lon, zoom, cols, rows);
+  if (!base) return null;
+  const pixels = clonePixelImage(base);
+  // Marker center in half-block pixel coordinates (grid is cols × rows*2).
+  paintMarker(pixels, Math.floor(cols / 2), rows);
+  return pixels;
 }
 
 async function render(
@@ -210,9 +238,5 @@ async function render(
   // (cols × rows*2), so bufferToPixels resizes without cropping.
   const canvas = await composeMap(lat, lon, cols * 2, rows * 4, zoom);
   const buf = await canvas.getBuffer("image/png");
-  const pixels = await bufferToPixels(buf, cols, rows);
-  if (!pixels) return null;
-  // Marker center in half-block pixel coordinates (grid is cols × rows*2).
-  paintMarker(pixels, Math.floor(cols / 2), rows);
-  return pixels;
+  return bufferToPixels(buf, cols, rows);
 }

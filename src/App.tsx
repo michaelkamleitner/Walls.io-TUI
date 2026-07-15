@@ -1,17 +1,84 @@
 import { useEffect, useMemo, useState } from "react";
 import { TextAttributes } from "@opentui/core";
 import { useKeyboard, useRenderer, useTerminalDimensions } from "@opentui/react";
+import { ChannelsLayout } from "./ChannelsLayout";
+import { DashboardLayout } from "./DashboardLayout";
 import { FluidLayout } from "./FluidLayout";
 import { KioskLayout } from "./KioskLayout";
 import { MapLayout } from "./MapLayout";
+import { ScreensaverLayout } from "./ScreensaverLayout";
+import { TheaterLayout } from "./TheaterLayout";
+import { TickerLayout } from "./TickerLayout";
+import { WorldLayout } from "./WorldLayout";
 import { theme } from "./theme";
 import { createWallClient, type Post, type WallStatus } from "./wall-client";
 
 // Ask for (and top up to) this many posts before the user starts scrolling.
 const INITIAL_POSTS = 100;
 
-export type LayoutName = "fluid" | "kiosk" | "map";
-export const LAYOUTS: LayoutName[] = ["fluid", "kiosk", "map"];
+export type LayoutName =
+  | "fluid"
+  | "kiosk"
+  | "map"
+  | "ticker"
+  | "theater"
+  | "dashboard"
+  | "channels"
+  | "world"
+  | "screensaver";
+export const LAYOUTS: LayoutName[] = [
+  "fluid",
+  "kiosk",
+  "map",
+  "world",
+  "ticker",
+  "theater",
+  "dashboard",
+  "channels",
+  "screensaver",
+];
+
+// Layout-specific key hints (l/r/q are appended for every layout).
+const KEY_HINTS: Record<LayoutName, Array<[string, string]>> = {
+  fluid: [
+    ["⇥", "posts"],
+    ["←/→", "links"],
+    ["↵", "open"],
+    ["j/k", "scroll"],
+    ["d/u", "page"],
+  ],
+  kiosk: [
+    ["space/→", "next"],
+    ["←", "prev"],
+    ["↵", "open post"],
+  ],
+  map: [
+    ["space/→", "next"],
+    ["←", "prev"],
+    ["↵", "open post"],
+  ],
+  world: [
+    ["space/→", "next"],
+    ["←", "prev"],
+    ["↵", "open post"],
+  ],
+  theater: [
+    ["space/→", "next"],
+    ["←", "prev"],
+    ["↵", "open post"],
+  ],
+  ticker: [
+    ["j/k", "scroll"],
+    ["d/u", "page"],
+  ],
+  dashboard: [],
+  channels: [
+    ["←/→", "column"],
+    ["j/k", "scroll"],
+    ["d/u", "page"],
+  ],
+  screensaver: [["space", "pause"]],
+};
 
 const STATUS_LABEL: Record<WallStatus, { text: string; color: string }> = {
   connecting: { text: "◌ CONNECTING", color: theme.amber },
@@ -129,8 +196,20 @@ export function App({ wallId, network, initialLayout = "fluid" }: AppProps) {
         <FluidLayout client={client} posts={posts} now={now} width={width} />
       ) : layout === "kiosk" ? (
         <KioskLayout posts={posts} now={now} width={width} height={height} />
-      ) : (
+      ) : layout === "map" ? (
         <MapLayout posts={posts} now={now} width={width} height={height} />
+      ) : layout === "world" ? (
+        <WorldLayout posts={posts} now={now} width={width} height={height} />
+      ) : layout === "ticker" ? (
+        <TickerLayout posts={posts} now={now} width={width} />
+      ) : layout === "theater" ? (
+        <TheaterLayout posts={posts} now={now} width={width} height={height} />
+      ) : layout === "dashboard" ? (
+        <DashboardLayout posts={posts} now={now} width={width} />
+      ) : layout === "channels" ? (
+        <ChannelsLayout posts={posts} now={now} width={width} />
+      ) : (
+        <ScreensaverLayout posts={posts} now={now} width={width} height={height} />
       )}
 
       <box
@@ -143,22 +222,32 @@ export function App({ wallId, network, initialLayout = "fluid" }: AppProps) {
           flexShrink: 0,
         }}
       >
-        {layout === "fluid" ? (
-          <text fg={theme.dim}>
-            <span fg={theme.green}>⇥</span> posts · <span fg={theme.green}>←/→</span> links ·{" "}
-            <span fg={theme.green}>↵</span> open · <span fg={theme.green}>j/k</span> scroll ·{" "}
-            <span fg={theme.green}>d/u</span> page · <span fg={theme.green}>l</span> layout ·{" "}
-            <span fg={theme.green}>r</span> reload · <span fg={theme.green}>q</span> quit
-          </text>
-        ) : (
-          <text fg={theme.dim}>
-            <span fg={theme.green}>space/→</span> next · <span fg={theme.green}>←</span> prev ·{" "}
-            <span fg={theme.green}>↵</span> open post · <span fg={theme.green}>l</span> layout ·{" "}
-            <span fg={theme.green}>r</span> reload · <span fg={theme.green}>q</span> quit
-          </text>
-        )}
-        <text fg={theme.dim}>
-          {layout !== "fluid" ? "AUTO-ADVANCE 5s" : exhausted ? "END OF FEED" : "SCROLL FOR MORE"}
+        <text fg={theme.dim} style={{ wrapMode: "none", flexShrink: 1 }}>
+          {[...KEY_HINTS[layout], ["l", "layout"], ["r", "reload"], ["q", "quit"]].map(
+            ([k, label], i) => (
+              <span key={i}>
+                {i > 0 ? " · " : ""}
+                <span fg={theme.green}>{k}</span> {label}
+              </span>
+            ),
+          )}
+        </text>
+        <text fg={theme.dim} style={{ flexShrink: 0, marginLeft: 2 }}>
+          {layout === "fluid"
+            ? exhausted
+              ? "END OF FEED"
+              : "SCROLL FOR MORE"
+            : layout === "ticker"
+              ? "LIVE TAIL"
+              : layout === "dashboard"
+                ? "LIVE"
+                : layout === "channels"
+                  ? ""
+                  : layout === "screensaver"
+                    ? "BOUNCING"
+                    : layout === "theater"
+                      ? "AUTO-ADVANCE 6s"
+                      : "AUTO-ADVANCE 5s"}
         </text>
       </box>
     </box>
