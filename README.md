@@ -33,6 +33,7 @@ npm install
 npm start                        # default wall
 npm start -- --wall 139355       # any other wall id
 npm start -- --network twitter   # restrict to one network
+npm start -- --layout kiosk      # start in the kiosk slideshow
 ```
 
 ## Standalone binary (nicer than npm start)
@@ -55,7 +56,27 @@ walls-tui
 
 The binary is per-platform (build on the machine you run it on).
 
+## Layouts
+
+Two layouts ship; `l` toggles between them at any time and `--layout`
+picks the starting one.
+
+- **Fluid** (default) — the responsive multi-column masonry feed.
+- **Kiosk** — a full-screen slideshow showing one post at a time: media
+  large on the left, author / timestamp / text on the right. Advances
+  every 5 seconds; manual navigation resets the timer.
+
 ## Keyboard
+
+Global:
+
+| Key   | Action                        |
+| ----- | ----------------------------- |
+| `l`   | switch layout (Fluid ↔ Kiosk) |
+| `r`   | reconnect and reload the wall |
+| `q`   | quit                          |
+
+Fluid:
 
 | Key           | Action                                    |
 | ------------- | ----------------------------------------- |
@@ -65,12 +86,19 @@ The binary is per-platform (build on the machine you run it on).
 | `j` / `k`     | scroll down / up                          |
 | `d` / `u`     | page down / up (PgDn / PgUp work too)     |
 | `↑` / `↓` / mouse wheel | scroll                          |
-| `r`           | reconnect and reload the wall             |
-| `q`           | quit                                      |
 
 Author names, timestamps, URLs in post text, and CTA buttons are all
 links — `←`/`→` walks through every one of them in reading order and
 scrolls its card into view.
+
+Kiosk:
+
+| Key             | Action                                  |
+| --------------- | --------------------------------------- |
+| `Space` / `→`   | next post (wraps around)                |
+| `←`             | previous post (wraps around)            |
+| `Enter`         | open the current post in your browser   |
+| `Esc`           | quit                                    |
 
 ## Options
 
@@ -78,6 +106,7 @@ scrolls its card into view.
 | ----------------- | -------- | ----------------------------------------- |
 | `--wall <id>`     | `186670` | walls.io wall id to subscribe to          |
 | `--network <net>` | all      | only show one network (e.g. `instagram`)  |
+| `--layout <name>` | `fluid`  | starting layout: `fluid` or `kiosk`       |
 
 ## How it works
 
@@ -87,7 +116,9 @@ scrolls its card into view.
 | `src/pixels.ts`    | Image → half-block pixels: two square-ish grayscale pixels per cell via `▀` (fg = top, bg = bottom), 64 shades, contrast-stretched. |
 | `src/video.ts`     | Video → slideshow: ffmpeg frame extraction with an on-disk cache and a 2-process cap.  |
 | `src/masonry.ts`   | Greedy shortest-column packing with card-height estimation, plus the JS word-wrapper. |
-| `src/App.tsx`      | Feed shell: responsive columns, infinite scroll, keyboard handling, link registry.    |
+| `src/App.tsx`      | Shell: header/footer, layout switching, global keys, timestamp ticker.                |
+| `src/FluidLayout.tsx` | Masonry feed: responsive columns, infinite scroll, keyboard link navigation.        |
+| `src/KioskLayout.tsx` | Slideshow: one large post, 5 s auto-advance, Space/arrow navigation.                |
 | `src/PostCard.tsx` | One post: author, timestamp, body, image, video tag, CTA — all hyperlinked.           |
 
 The feed loads 100 posts up front and pages in older ones as you scroll.

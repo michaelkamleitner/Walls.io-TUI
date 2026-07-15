@@ -4,10 +4,11 @@
  *   npm start                  # default wall
  *   npm start -- --wall 139355 # another wall (same idea as ?id= on the web)
  *   npm start -- --network twitter
+ *   npm start -- --layout kiosk
  */
 import { createCliRenderer } from "@opentui/core";
 import { createRoot } from "@opentui/react";
-import { App } from "./App";
+import { App, type LayoutName } from "./App";
 
 // Mirrors DEFAULT_WALL_ID + the ?id= override from the web layout: the CLI
 // flag is the single override surface, anything non-numeric falls back.
@@ -23,6 +24,10 @@ function argValue(name: string): string | undefined {
 
 const wallId = Number(argValue("wall")) || DEFAULT_WALL_ID;
 const network = argValue("network");
+const layoutArg = (argValue("layout") || "fluid").toLowerCase();
+const initialLayout: LayoutName = layoutArg === "kiosk" ? "kiosk" : "fluid";
 
 const renderer = await createCliRenderer({ targetFps: 30 });
-createRoot(renderer).render(<App wallId={wallId} network={network} />);
+createRoot(renderer).render(
+  <App wallId={wallId} network={network} initialLayout={initialLayout} />,
+);

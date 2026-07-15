@@ -59,5 +59,21 @@ console.log(
   `=== after 3x right: renders=${afterNav.length > 0}, posts header intact=${afterNav.includes("POSTS")}, amber-highlighted=${JSON.stringify(highlighted.slice(0, 3))} ===`,
 );
 
+// Layout switch: 'l' flips to kiosk (one large post + counter), space
+// advances the slideshow, 'l' flips back to fluid.
+await mockInput.pressKeys(["l"]);
+await new Promise((r) => setTimeout(r, 300));
+await renderOnce();
+const kiosk = captureCharFrame();
+const counter = kiosk.match(/(\d+) \/ (\d+)/);
+await mockInput.pressKeys([" "]);
+await new Promise((r) => setTimeout(r, 300));
+await renderOnce();
+const afterSpace = captureCharFrame().match(/(\d+) \/ (\d+)/);
+console.log(
+  `=== kiosk: header=${kiosk.includes("KIOSK")}, autoadvance=${kiosk.includes("AUTO-ADVANCE")}, counter=${counter?.[0]}, after space=${afterSpace?.[0]} ===`,
+);
+console.log(kiosk.split("\n").slice(4, 30).join("\n"));
+
 renderer.destroy();
 process.exit(0);
