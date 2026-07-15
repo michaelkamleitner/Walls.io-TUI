@@ -102,26 +102,44 @@ async function composeMap(
   return canvas;
 }
 
-// Paint one cell of a rendered pixel image (splitting the run it sits in).
-function paintCell(
+function hexChannel(hex: string, i: number): number {
+  return parseInt(hex.slice(1 + i * 2, 3 + i * 2), 16) || 0;
+}
+
+function mixHex(a: string, b: string, t: number): string {
+  const c = [0, 1, 2]
+    .map((i) => Math.round(hexChannel(a, i) + (hexChannel(b, i) - hexChannel(a, i)) * t))
+    .map((v) => Math.min(255, Math.max(0, v)).toString(16).padStart(2, "0"))
+    .join("");
+  return `#${c}`;
+}
+
+// Recolor a single half-block pixel (px, py) of the rendered image —
+// upper half of a cell is the run's fg, lower half its bg. `transform`
+// receives the current color so edges can blend with the map underneath.
+function paintHalfPixel(
   image: PixelImage,
-  row: number,
-  col: number,
-  ch: string,
-  fg: string,
-  bg?: string,
+  px: number,
+  py: number,
+  transform: (current: string) => string,
 ) {
-  const line = image[row];
+  if (px < 0 || py < 0) return;
+  const line = image[Math.floor(py / 2)];
   if (!line) return;
+  const upper = py % 2 === 0;
   let x = 0;
   for (let i = 0; i < line.length; i++) {
     const run = line[i];
     const chars = [...run.text];
-    if (col < x + chars.length) {
-      const idx = col - x;
+    if (px < x + chars.length) {
+      const idx = px - x;
       const parts = [];
       if (idx > 0) parts.push({ text: chars.slice(0, idx).join(""), fg: run.fg, bg: run.bg });
-      parts.push({ text: ch, fg, bg: bg ?? run.bg });
+      parts.push({
+        text: "▀",
+        fg: upper ? transform(run.fg) : run.fg,
+        bg: upper ? run.bg : transform(run.bg),
+      });
       if (idx + 1 < chars.length)
         parts.push({ text: chars.slice(idx + 1).join(""), fg: run.fg, bg: run.bg });
       line.splice(i, 1, ...parts);
@@ -131,14 +149,28 @@ function paintCell(
   }
 }
 
-// The marker: a solid 2×2-cell orange block — amber on both layers so no
-// font gap shows the map through it.
-function paintMarker(image: PixelImage, row: number, col: number) {
-  const r0 = Math.max(0, row - 1);
-  const c0 = Math.max(0, col - 1);
-  for (const r of [r0, r0 + 1]) {
-    for (const c of [c0, c0 + 1]) {
-      paintCell(image, r, c, "█", theme.amber, theme.amber);
+// The marker: an anti-aliased disc drawn in pixel space (half-block pixels
+// are ~square, so it reads as a true circle) — light-orange core through
+// the theme amber to a dark-orange rim, with the outermost ring blended
+// into the map underneath.
+const MARKER_RADIUS = 2.6;
+const MARKER_CORE = "#ffd75f";
+const MARKER_EDGE = "#c25e00";
+
+function paintMarker(image: PixelImage, cx: number, cy: number) {
+  const reach = MARKER_RADIUS + 1;
+  for (let py = Math.floor(cy - reach); py <= Math.ceil(cy + reach); py++) {
+    for (let px = Math.floor(cx - reach); px <= Math.ceil(cx + reach); px++) {
+      const d = Math.hypot(px - cx, py - cy);
+      if (d <= MARKER_RADIUS) {
+        const t = d / MARKER_RADIUS;
+        const color =
+          t < 0.45 ? mixHex(MARKER_CORE, theme.amber, t / 0.45) : mixHex(theme.amber, MARKER_EDGE, (t - 0.45) / 0.55);
+        paintHalfPixel(image, px, py, () => color);
+      } else if (d <= MARKER_RADIUS + 0.7) {
+        const coverage = (MARKER_RADIUS + 0.7 - d) / 0.7;
+        paintHalfPixel(image, px, py, (current) => mixHex(current, MARKER_EDGE, coverage));
+      }
     }
   }
 }
@@ -180,6 +212,7 @@ async function render(
   const buf = await canvas.getBuffer("image/png");
   const pixels = await bufferToPixels(buf, cols, rows);
   if (!pixels) return null;
-  paintMarker(pixels, Math.floor(rows / 2), Math.floor(cols / 2));
+  // Marker center in half-block pixel coordinates (grid is cols × rows*2).
+  paintMarker(pixels, Math.floor(cols / 2), rows);
   return pixels;
 }
