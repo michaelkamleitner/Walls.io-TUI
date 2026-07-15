@@ -59,6 +59,21 @@ console.log(
   `=== after 3x right: renders=${afterNav.length > 0}, posts header intact=${afterNav.includes("POSTS")}, amber-highlighted=${JSON.stringify(highlighted.slice(0, 3))} ===`,
 );
 
+// Post focus: Esc clears the link-driven focus, Tab focuses the first
+// post — its border turns theme-green.
+const greenBorders = () =>
+  captureSpans()
+    .lines.flatMap((l) => l.spans)
+    .filter((s) => hexOf(s.fg) === theme.green.toLowerCase() && /[┌┐└┘─│]/.test(s.text)).length;
+await mockInput.pressKeys(["ESCAPE"]);
+await new Promise((r) => setTimeout(r, 300));
+await renderOnce();
+const bordersAfterEsc = greenBorders();
+await mockInput.pressKeys(["TAB"]);
+await new Promise((r) => setTimeout(r, 300));
+await renderOnce();
+console.log(`=== tab focus: green borders after esc=${bordersAfterEsc}, after tab=${greenBorders()} ===`);
+
 // Layout switch: 'l' flips to kiosk (one large post + counter), space
 // advances the slideshow, 'l' flips back to fluid.
 await mockInput.pressKeys(["l"]);

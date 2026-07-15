@@ -145,10 +145,10 @@ export function App({ wallId, network, initialLayout = "fluid" }: AppProps) {
       >
         {layout === "fluid" ? (
           <text fg={theme.dim}>
-            <span fg={theme.green}>←/→</span> links · <span fg={theme.green}>↵</span> open ·{" "}
-            <span fg={theme.green}>j/k</span> scroll · <span fg={theme.green}>d/u</span> page ·{" "}
-            <span fg={theme.green}>l</span> layout · <span fg={theme.green}>r</span> reload ·{" "}
-            <span fg={theme.green}>q</span> quit
+            <span fg={theme.green}>⇥</span> posts · <span fg={theme.green}>←/→</span> links ·{" "}
+            <span fg={theme.green}>↵</span> open · <span fg={theme.green}>j/k</span> scroll ·{" "}
+            <span fg={theme.green}>d/u</span> page · <span fg={theme.green}>l</span> layout ·{" "}
+            <span fg={theme.green}>r</span> reload · <span fg={theme.green}>q</span> quit
           </text>
         ) : (
           <text fg={theme.dim}>

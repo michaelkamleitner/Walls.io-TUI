@@ -86,16 +86,19 @@ Fluid:
 
 | Key           | Action                                    |
 | ------------- | ----------------------------------------- |
+| `Tab` / `Shift+Tab` | focus next / previous post (green border) |
 | `←` / `→`     | select previous / next link in the feed   |
-| `Enter`       | open the selected link in your browser    |
-| `Esc`         | clear link selection (quit when none)     |
+| `Enter`       | open the selected link — or the focused post — in your browser |
+| `Esc`         | clear focus/selection (quit when none)    |
 | `j` / `k`     | scroll down / up                          |
 | `d` / `u`     | page down / up (PgDn / PgUp work too)     |
 | `↑` / `↓` / mouse wheel | scroll                          |
 
 Author names, timestamps, URLs in post text, and CTA buttons are all
 links — `←`/`→` walks through every one of them in reading order and
-scrolls its card into view.
+scrolls its card into view. Link selection and post focus stay in sync:
+browsing links moves the green post highlight along, and after `Tab`bing
+to a post, `→` starts at that post's first link.
 
 Kiosk / Map:
 

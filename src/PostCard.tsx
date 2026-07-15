@@ -13,9 +13,11 @@ export interface PostCardProps {
   now: number;
   /** link key within this post that keyboard selection is on, or null */
   selected: string | null;
+  /** post-level keyboard focus (Tab navigation) — highlights the border */
+  active?: boolean;
 }
 
-export function PostCard({ post, innerWidth, now, selected }: PostCardProps) {
+export function PostCard({ post, innerWidth, now, selected, active }: PostCardProps) {
   const pinned = !!post.is_pinned;
   const color = networkColor(post.type);
   const author = post.external_fullname || post.external_name || "anonymous";
@@ -79,7 +81,7 @@ export function PostCard({ post, innerWidth, now, selected }: PostCardProps) {
       border
       style={{
         borderStyle: "single",
-        borderColor: pinned ? theme.amber : theme.border,
+        borderColor: active ? theme.green : pinned ? theme.amber : theme.border,
         backgroundColor: theme.panel,
         flexDirection: "column",
         width: "100%",

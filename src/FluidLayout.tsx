@@ -12,7 +12,7 @@ import { distribute } from "./masonry";
 import { openInBrowser } from "./open";
 import { PostCard } from "./PostCard";
 import { theme } from "./theme";
-import type { Post, WallClient } from "./wall-client";
+import { safeUrl, type Post, type WallClient } from "./wall-client";
 
 export interface FluidLayoutProps {
   client: WallClient;
@@ -23,12 +23,23 @@ export interface FluidLayoutProps {
 
 export function FluidLayout({ client, posts, now, width }: FluidLayoutProps) {
   const [selectedLink, setSelectedLink] = useState<string | null>(null);
-  // Mirror of selectedLink that updates synchronously — rapid/held arrow
-  // presses arrive faster than React re-renders, and each press must see
-  // the previous one's result.
+  const [activePost, setActivePost] = useState<string | null>(null);
+  // Mirrors that update synchronously — rapid/held key presses arrive
+  // faster than React re-renders, and each press must see the previous
+  // one's result.
   const selectedLinkRef = useRef<string | null>(null);
+  const activePostRef = useRef<string | null>(null);
   const scrollRef = useRef<ScrollBoxRenderable>(null);
   const renderer = useRenderer();
+
+  const selectLink = (id: string | null) => {
+    selectedLinkRef.current = id;
+    setSelectedLink(id);
+  };
+  const focusPost = (id: string | null) => {
+    activePostRef.current = id;
+    setActivePost(id);
+  };
 
   // Infinite scroll: when the view sits near the bottom, page in older posts.
   useEffect(() => {
@@ -59,35 +70,74 @@ export function FluidLayout({ client, posts, now, width }: FluidLayoutProps) {
     const page = Math.max(4, (sb?.viewport?.height ?? 10) - 2);
     switch (key.name) {
       case "escape":
-        if (selectedLinkRef.current) {
-          selectedLinkRef.current = null;
-          setSelectedLink(null);
+        if (selectedLinkRef.current || activePostRef.current) {
+          selectLink(null);
+          focusPost(null);
         } else {
           renderer.destroy();
           process.exit(0);
         }
         break;
+      case "tab": {
+        if (!posts.length) break;
+        const dir = key.shift ? -1 : 1;
+        const ids = posts.map((p) => String(p.id));
+        const current = ids.indexOf(activePostRef.current ?? "");
+        const next =
+          current === -1
+            ? dir === 1
+              ? 0
+              : ids.length - 1
+            : (current + dir + ids.length) % ids.length;
+        focusPost(ids[next]);
+        selectLink(null); // post-level focus; ←/→ resumes from this post
+        sb?.scrollChildIntoView(`card-${ids[next]}`);
+        break;
+      }
       case "left":
       case "right": {
         if (!allLinks.length) break;
         const dir = key.name === "right" ? 1 : -1;
         const current = allLinks.findIndex((l) => l.id === selectedLinkRef.current);
-        const next =
-          current === -1
-            ? dir === 1
-              ? 0
-              : allLinks.length - 1
-            : (current + dir + allLinks.length) % allLinks.length;
+        let next: number;
+        if (current !== -1) {
+          next = (current + dir + allLinks.length) % allLinks.length;
+        } else if (activePostRef.current) {
+          // No link selected but a post is focused (via Tab): start from
+          // that post's first (→) or last (←) link.
+          const anchor = allLinks.findIndex((l) => l.postId === activePostRef.current);
+          if (anchor === -1) {
+            next = dir === 1 ? 0 : allLinks.length - 1;
+          } else if (dir === 1) {
+            next = anchor;
+          } else {
+            let last = anchor;
+            while (
+              last + 1 < allLinks.length &&
+              allLinks[last + 1].postId === activePostRef.current
+            )
+              last++;
+            next = last;
+          }
+        } else {
+          next = dir === 1 ? 0 : allLinks.length - 1;
+        }
         const link = allLinks[next];
-        selectedLinkRef.current = link.id;
-        setSelectedLink(link.id);
+        selectLink(link.id);
+        focusPost(link.postId); // the active-post highlight follows the link
         sb?.scrollChildIntoView(`card-${link.postId}`);
         break;
       }
       case "return":
       case "linefeed": {
         const link = allLinks.find((l) => l.id === selectedLinkRef.current);
-        if (link) openInBrowser(link.url);
+        if (link) {
+          openInBrowser(link.url);
+          break;
+        }
+        const post = posts.find((p) => String(p.id) === activePostRef.current);
+        const url = post ? safeUrl(post.post_link) : "";
+        if (url) openInBrowser(url);
         break;
       }
       case "j":
@@ -169,6 +219,7 @@ export function FluidLayout({ client, posts, now, width }: FluidLayoutProps) {
                   post={post}
                   innerWidth={innerWidth}
                   now={now}
+                  active={activePost === String(post.id)}
                   selected={
                     selectedLink?.startsWith(`${post.id}::`)
                       ? selectedLink.slice(`${post.id}::`.length)
