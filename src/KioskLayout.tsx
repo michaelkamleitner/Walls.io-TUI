@@ -8,11 +8,18 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { TextAttributes } from "@opentui/core";
 import { useKeyboard, useRenderer } from "@opentui/react";
 import { usePixelImage, useVideoSlideshow } from "./hooks";
-import { postBody, URL_RE } from "./links";
+import { URL_RE } from "./links";
 import { wrapText } from "./masonry";
 import { openInBrowser } from "./open";
 import { networkBadge, networkColor, theme } from "./theme";
-import { imageUrl, parseCta, relativeTime, safeUrl, type Post } from "./wall-client";
+import {
+  imageUrl,
+  parseCta,
+  plainComment,
+  relativeTime,
+  safeUrl,
+  type Post,
+} from "./wall-client";
 
 const ADVANCE_MS = 5000;
 
@@ -102,7 +109,17 @@ export function KioskLayout({ posts, now, width, height }: KioskLayoutProps) {
     20,
     Math.min(showMedia ? width - mediaCols - 12 : width - 16, 64),
   );
-  const bodyLines = wrapText(postBody(post), textCols);
+  // Full post text — the kiosk is a reading view, so no 280-char cap. Only
+  // the screen itself limits it: there's no scrolling here, so anything
+  // that can't fit the stage is ellipsized on the last visible line.
+  const allLines = wrapText(plainComment(post), textCols);
+  const maxBodyLines = Math.max(4, height - 16);
+  const bodyLines =
+    allLines.length > maxBodyLines
+      ? allLines
+          .slice(0, maxBodyLines)
+          .map((line, i) => (i === maxBodyLines - 1 ? line.replace(/\s+$/, "") + " …" : line))
+      : allLines;
 
   const renderBodyLine = (line: string, i: number) => {
     const parts: Array<string | ReactNode> = [];
