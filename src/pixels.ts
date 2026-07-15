@@ -5,8 +5,9 @@
  * upper-half-block character '▀': the foreground colors the top pixel, the
  * background colors the bottom one. Since a cell is roughly twice as tall
  * as it is wide, each half-cell is close to square — the result reads as a
- * chunky, quantized grayscale bitmap (16 gray levels for the retro look;
- * quantizing also lets adjacent cells merge into longer same-color runs).
+ * chunky grayscale bitmap. Luminance is quantized to GRAY_LEVELS shades:
+ * enough for smooth gradients, while still letting same-shade neighbors
+ * merge into longer runs.
  *
  * Fetches from the walls.io resizing CDN with webp=0 — jimp decodes
  * jpeg/png/bmp/gif/tiff, not webp.
@@ -14,7 +15,7 @@
 import { Jimp } from "jimp";
 
 const HALF_BLOCK = "▀";
-const GRAY_LEVELS = 16;
+const GRAY_LEVELS = 64;
 
 export interface PixelRun {
   text: string;
