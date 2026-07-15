@@ -64,6 +64,9 @@ export interface Post {
   post_image_alt_text?: string;
   post_image_width?: number;
   post_image_height?: number;
+  latitude?: number | string | null;
+  longitude?: number | string | null;
+  location?: string | null;
   is_video?: number | boolean;
   post_video?: string;
   post_video_width?: number;

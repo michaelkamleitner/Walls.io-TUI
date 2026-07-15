@@ -65,16 +65,22 @@ picks the starting one.
 - **Kiosk** — a full-screen slideshow showing one post at a time: media
   large on the left, author / timestamp / text on the right. Advances
   every 5 seconds; manual navigation resets the timer.
+- **Map** — a slideshow over the wall's *geotagged* posts: a full-bleed
+  rasterized OpenStreetMap view centered on each post's coordinates
+  (◉ marks the spot), with the post floating in a card. Same navigation
+  as Kiosk. Tiles come from tile.openstreetmap.org and are cached in
+  `~/.cache/walls-tui/tiles/`; walls without lat/long data show a hint
+  to switch layouts.
 
 ## Keyboard
 
 Global:
 
-| Key   | Action                        |
-| ----- | ----------------------------- |
-| `l`   | switch layout (Fluid ↔ Kiosk) |
-| `r`   | reconnect and reload the wall |
-| `q`   | quit                          |
+| Key   | Action                                |
+| ----- | ------------------------------------- |
+| `l`   | cycle layout (Fluid → Kiosk → Map)    |
+| `r`   | reconnect and reload the wall         |
+| `q`   | quit                                  |
 
 Fluid:
 
@@ -91,7 +97,7 @@ Author names, timestamps, URLs in post text, and CTA buttons are all
 links — `←`/`→` walks through every one of them in reading order and
 scrolls its card into view.
 
-Kiosk:
+Kiosk / Map:
 
 | Key             | Action                                  |
 | --------------- | --------------------------------------- |
@@ -106,7 +112,7 @@ Kiosk:
 | ----------------- | -------- | ----------------------------------------- |
 | `--wall <id>`     | `186670` | walls.io wall id to subscribe to          |
 | `--network <net>` | all      | only show one network (e.g. `instagram`)  |
-| `--layout <name>` | `fluid`  | starting layout: `fluid` or `kiosk`       |
+| `--layout <name>` | `fluid`  | starting layout: `fluid`, `kiosk`, `map`  |
 
 ## How it works
 
@@ -119,6 +125,7 @@ Kiosk:
 | `src/App.tsx`      | Shell: header/footer, layout switching, global keys, timestamp ticker.                |
 | `src/FluidLayout.tsx` | Masonry feed: responsive columns, infinite scroll, keyboard link navigation.        |
 | `src/KioskLayout.tsx` | Slideshow: one large post, 5 s auto-advance, Space/arrow navigation.                |
+| `src/MapLayout.tsx` / `src/map.ts` | Geo slideshow: OSM tile fetch + compose + rasterize, marker, floating post card. |
 | `src/PostCard.tsx` | One post: author, timestamp, body, image, video tag, CTA — all hyperlinked.           |
 
 The feed loads 100 posts up front and pages in older ones as you scroll.

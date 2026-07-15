@@ -3,13 +3,15 @@ import { TextAttributes } from "@opentui/core";
 import { useKeyboard, useRenderer, useTerminalDimensions } from "@opentui/react";
 import { FluidLayout } from "./FluidLayout";
 import { KioskLayout } from "./KioskLayout";
+import { MapLayout } from "./MapLayout";
 import { theme } from "./theme";
 import { createWallClient, type Post, type WallStatus } from "./wall-client";
 
 // Ask for (and top up to) this many posts before the user starts scrolling.
 const INITIAL_POSTS = 100;
 
-export type LayoutName = "fluid" | "kiosk";
+export type LayoutName = "fluid" | "kiosk" | "map";
+export const LAYOUTS: LayoutName[] = ["fluid", "kiosk", "map"];
 
 const STATUS_LABEL: Record<WallStatus, { text: string; color: string }> = {
   connecting: { text: "◌ CONNECTING", color: theme.amber },
@@ -72,7 +74,7 @@ export function App({ wallId, network, initialLayout = "fluid" }: AppProps) {
         renderer.destroy();
         process.exit(0);
       case "l":
-        setLayout((l) => (l === "fluid" ? "kiosk" : "fluid"));
+        setLayout((l) => LAYOUTS[(LAYOUTS.indexOf(l) + 1) % LAYOUTS.length]);
         break;
       case "r":
         client.restart();
@@ -125,8 +127,10 @@ export function App({ wallId, network, initialLayout = "fluid" }: AppProps) {
 
       {layout === "fluid" ? (
         <FluidLayout client={client} posts={posts} now={now} width={width} />
-      ) : (
+      ) : layout === "kiosk" ? (
         <KioskLayout posts={posts} now={now} width={width} height={height} />
+      ) : (
+        <MapLayout posts={posts} now={now} width={width} height={height} />
       )}
 
       <box
@@ -154,7 +158,7 @@ export function App({ wallId, network, initialLayout = "fluid" }: AppProps) {
           </text>
         )}
         <text fg={theme.dim}>
-          {layout === "kiosk" ? "AUTO-ADVANCE 5s" : exhausted ? "END OF FEED" : "SCROLL FOR MORE"}
+          {layout !== "fluid" ? "AUTO-ADVANCE 5s" : exhausted ? "END OF FEED" : "SCROLL FOR MORE"}
         </text>
       </box>
     </box>
