@@ -8,10 +8,12 @@
 import { createTestRenderer } from "@opentui/core/testing";
 import { createRoot } from "@opentui/react";
 import { App } from "./App";
+import { theme } from "./theme";
 
-const { renderer, renderOnce, captureCharFrame } = await createTestRenderer({
-  width: 100,
-  height: 44,
+// Wide enough for a four-column layout (~38-col cards).
+const { renderer, renderOnce, captureCharFrame, captureSpans, mockInput } = await createTestRenderer({
+  width: 160,
+  height: 46,
 });
 
 createRoot(renderer).render(<App wallId={186670} />);
@@ -28,11 +30,34 @@ while (Date.now() < deadline) {
   await renderOnce();
   frame = captureCharFrame();
   const hasPosts = frame.includes("▌");
-  const hasImage = /[@#%*+=:-]{12}/.test(frame);
+  const hasImage = frame.includes("▀▀▀▀▀▀");
   if (hasPosts && hasImage) break;
 }
 
 console.log("=== frame 1 (with data) ===");
 console.log(frame);
+
+// Link navigation: three →-presses should select the third link without
+// crashing, and something on screen must carry the amber selection
+// background.
+await mockInput.pressKeys(["ARROW_RIGHT", "ARROW_RIGHT", "ARROW_RIGHT"]);
+await new Promise((r) => setTimeout(r, 300)); // let React flush the state update
+await renderOnce();
+const afterNav = captureCharFrame();
+const amber = theme.amber.toLowerCase();
+const hexOf = (c: { r: number; g: number; b: number }) =>
+  "#" +
+  [c.r, c.g, c.b]
+    .map((v) => Math.round(v * 255).toString(16).padStart(2, "0"))
+    .join("");
+const highlighted = captureSpans()
+  .lines.flatMap((l) => l.spans)
+  .filter((s) => hexOf(s.bg) === amber)
+  .map((s) => s.text.trim())
+  .filter(Boolean);
+console.log(
+  `=== after 3x right: renders=${afterNav.length > 0}, posts header intact=${afterNav.includes("POSTS")}, amber-highlighted=${JSON.stringify(highlighted.slice(0, 3))} ===`,
+);
+
 renderer.destroy();
 process.exit(0);

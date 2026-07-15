@@ -1,9 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { spawn } from "node:child_process";
 import { ScrollBoxRenderable, TextAttributes } from "@opentui/core";
 import { useKeyboard, useRenderer, useTerminalDimensions } from "@opentui/react";
+import { linkId, postBody, postLinks } from "./links";
+import { distribute } from "./masonry";
 import { PostCard } from "./PostCard";
 import { theme } from "./theme";
 import { createWallClient, type Post, type WallStatus } from "./wall-client";
+
+// Ask for (and top up to) this many posts before the user starts scrolling.
+const INITIAL_POSTS = 100;
 
 const STATUS_LABEL: Record<WallStatus, { text: string; color: string }> = {
   connecting: { text: "◌ CONNECTING", color: theme.amber },
@@ -12,17 +18,35 @@ const STATUS_LABEL: Record<WallStatus, { text: string; color: string }> = {
   error: { text: "✕ RETRYING", color: theme.red },
 };
 
+function openInBrowser(url: string) {
+  const cmd =
+    process.platform === "darwin" ? "open" : process.platform === "win32" ? "explorer" : "xdg-open";
+  try {
+    spawn(cmd, [url], { stdio: "ignore", detached: true }).unref();
+  } catch {
+    // last resort: nothing sensible to do in a TUI
+  }
+}
+
 export interface AppProps {
   wallId: number;
   network?: string;
 }
 
 export function App({ wallId, network }: AppProps) {
-  const client = useMemo(() => createWallClient({ wallId, network }), [wallId, network]);
+  const client = useMemo(
+    () => createWallClient({ wallId, network, initialCount: INITIAL_POSTS }),
+    [wallId, network],
+  );
   const [posts, setPosts] = useState<Post[]>([]);
   const [status, setStatus] = useState<WallStatus>("connecting");
   const [exhausted, setExhausted] = useState(false);
   const [now, setNow] = useState(Date.now());
+  const [selectedLink, setSelectedLink] = useState<string | null>(null);
+  // Mirror of selectedLink that updates synchronously — rapid/held arrow
+  // presses arrive faster than React re-renders, and each press must see
+  // the previous one's result.
+  const selectedLinkRef = useRef<string | null>(null);
   const scrollRef = useRef<ScrollBoxRenderable>(null);
   const renderer = useRenderer();
   const { width } = useTerminalDimensions();
@@ -40,14 +64,22 @@ export function App({ wallId, network }: AppProps) {
     };
   }, [client]);
 
+  // Top up the initial buffer: brokers often send fewer than requested per
+  // batch, so keep paging until the feed holds INITIAL_POSTS (or history
+  // runs out). canLoadOlder guards in-flight requests and exhaustion.
+  useEffect(() => {
+    if (posts.length > 0 && posts.length < INITIAL_POSTS && client.canLoadOlder) {
+      client.loadOlder(INITIAL_POSTS - posts.length);
+    }
+  }, [posts, client]);
+
   // Keep relative timestamps fresh (~30 s, mirroring CUSTOMIZE.md's rule).
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 30_000);
     return () => clearInterval(t);
   }, []);
 
-  // Infinite scroll: when the view sits near the bottom, page in older
-  // posts. canLoadOlder already guards in-flight and exhausted states.
+  // Infinite scroll: when the view sits near the bottom, page in older posts.
   useEffect(() => {
     const t = setInterval(() => {
       const sb = scrollRef.current;
@@ -60,14 +92,56 @@ export function App({ wallId, network }: AppProps) {
     return () => clearInterval(t);
   }, [client]);
 
+  // Flat, reading-ordered list of every openable link in the feed.
+  const allLinks = useMemo(() => {
+    const flat: Array<{ id: string; url: string; postId: string }> = [];
+    for (const post of posts) {
+      for (const link of postLinks(post, postBody(post))) {
+        flat.push({ id: linkId(post.id, link.key), url: link.url, postId: String(post.id) });
+      }
+    }
+    return flat;
+  }, [posts]);
+
   useKeyboard((key) => {
     const sb = scrollRef.current;
     const page = Math.max(4, (sb?.viewport?.height ?? 10) - 2);
     switch (key.name) {
       case "q":
-      case "escape":
         renderer.destroy();
         process.exit(0);
+      case "escape":
+        if (selectedLinkRef.current) {
+          selectedLinkRef.current = null;
+          setSelectedLink(null);
+        } else {
+          renderer.destroy();
+          process.exit(0);
+        }
+        break;
+      case "left":
+      case "right": {
+        if (!allLinks.length) break;
+        const dir = key.name === "right" ? 1 : -1;
+        const current = allLinks.findIndex((l) => l.id === selectedLinkRef.current);
+        const next =
+          current === -1
+            ? dir === 1
+              ? 0
+              : allLinks.length - 1
+            : (current + dir + allLinks.length) % allLinks.length;
+        const link = allLinks[next];
+        selectedLinkRef.current = link.id;
+        setSelectedLink(link.id);
+        sb?.scrollChildIntoView(`card-${link.postId}`);
+        break;
+      }
+      case "return":
+      case "linefeed": {
+        const link = allLinks.find((l) => l.id === selectedLinkRef.current);
+        if (link) openInBrowser(link.url);
+        break;
+      }
       case "j":
         sb?.scrollBy(2);
         break;
@@ -92,8 +166,19 @@ export function App({ wallId, network }: AppProps) {
     }
   });
 
-  // outer padding (2) + card border (2) + card padding (2) + scrollbar (2)
-  const innerWidth = Math.max(20, width - 8);
+  // Responsive masonry: aim for ~38-column cards (a CSS auto-fill grid
+  // with minmax(38ch, 1fr), in terminal terms).
+  const gap = 1;
+  const usableForCount = width - 4;
+  const columnCount = Math.max(1, Math.min(6, Math.floor(usableForCount / 38)));
+  const usable = width - 4 - (columnCount - 1) * gap;
+  const columnWidth = Math.floor(usable / columnCount);
+  // card border (2) + card padding (2)
+  const innerWidth = Math.max(16, columnWidth - 4);
+  const columns = useMemo(
+    () => distribute(posts, columnCount, innerWidth),
+    [posts, columnCount, innerWidth],
+  );
   const statusInfo = STATUS_LABEL[status];
 
   return (
@@ -162,9 +247,28 @@ export function App({ wallId, network }: AppProps) {
             </text>
           </box>
         ) : (
-          posts.map((post) => (
-            <PostCard key={String(post.id)} post={post} innerWidth={innerWidth} now={now} />
-          ))
+          <box style={{ flexDirection: "row", width: "100%", alignItems: "flex-start", gap }}>
+            {columns.map((columnPosts, i) => (
+              <box
+                key={i}
+                style={{ flexDirection: "column", flexGrow: 1, flexBasis: 0, flexShrink: 1 }}
+              >
+                {columnPosts.map((post) => (
+                  <PostCard
+                    key={String(post.id)}
+                    post={post}
+                    innerWidth={innerWidth}
+                    now={now}
+                    selected={
+                      selectedLink?.startsWith(`${post.id}::`)
+                        ? selectedLink.slice(`${post.id}::`.length)
+                        : null
+                    }
+                  />
+                ))}
+              </box>
+            ))}
+          </box>
         )}
         {exhausted && posts.length > 0 ? (
           <box style={{ alignItems: "center", marginBottom: 1 }}>
@@ -184,6 +288,7 @@ export function App({ wallId, network }: AppProps) {
         }}
       >
         <text fg={theme.dim}>
+          <span fg={theme.green}>←/→</span> links · <span fg={theme.green}>↵</span> open ·{" "}
           <span fg={theme.green}>j/k</span> scroll · <span fg={theme.green}>d/u</span> page ·{" "}
           <span fg={theme.green}>g/G</span> top/end · <span fg={theme.green}>r</span> reload ·{" "}
           <span fg={theme.green}>q</span> quit

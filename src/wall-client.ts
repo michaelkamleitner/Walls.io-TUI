@@ -79,6 +79,12 @@ export interface WallClientOptions {
   rankField?: string;
   frontendToken?: string;
   network?: string;
+  /**
+   * How many posts to ask the broadcaster for up front (the `initialCheckins`
+   * query param). The server may send fewer per batch — the view is expected
+   * to top up via loadOlder() until it has enough (App does this).
+   */
+  initialCount?: number;
 }
 
 interface Listeners {
@@ -184,7 +190,14 @@ export function plainComment(post: Post): string {
       .replace(/<[^>]+>/g, "");
   }
   if (!text) return "";
-  return decodeEntities(text).replace(/\r\n?/g, "\n").trim();
+  // Collapse runs of spaces/tabs and strip line-trailing whitespace —
+  // hanging spaces at a wrap boundary can overflow the card border.
+  return decodeEntities(text)
+    .replace(/\r\n?/g, "\n")
+    .split("\n")
+    .map((line) => line.replace(/[ \t]{2,}/g, " ").replace(/\s+$/, ""))
+    .join("\n")
+    .trim();
 }
 
 // Terminal counterpart of the web client's truncateComment: same ~280-char
@@ -357,7 +370,7 @@ export function createWallClient(opts: WallClientOptions): WallClient {
       wallId: String(opts.wallId),
       client: "wallsio-frontend",
       frontendToken: opts.frontendToken || "",
-      initialCheckins: "",
+      initialCheckins: opts.initialCount != null ? String(opts.initialCount) : "",
       network,
     });
     sock = io(`${nodeUrl}?${qs}`, {

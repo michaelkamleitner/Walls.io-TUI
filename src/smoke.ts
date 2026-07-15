@@ -5,7 +5,7 @@
  *
  *   npm run smoke -- --wall 186670
  */
-import { imageToAscii } from "./ascii";
+import { imageToPixels } from "./pixels";
 import {
   createWallClient,
   imageUrl,
@@ -17,9 +17,9 @@ import {
 
 const wallId = Number(process.argv.find((a, i) => process.argv[i - 1] === "--wall")) || 186670;
 
-function hexToAnsi(hex: string): string {
+function hexToAnsi(hex: string, layer: 38 | 48): string {
   const n = parseInt(hex.slice(1), 16);
-  return `\x1b[38;2;${(n >> 16) & 255};${(n >> 8) & 255};${n & 255}m`;
+  return `\x1b[${layer};2;${(n >> 16) & 255};${(n >> 8) & 255};${n & 255}m`;
 }
 
 const client = createWallClient({ wallId });
@@ -58,17 +58,20 @@ console.log(`[loadOlder] ${older}`);
 const withImage = posts.find((p) => p.post_image_unique_id || p.post_image);
 if (withImage) {
   const src = imageUrl(withImage, { w: 320, webp: 0 });
-  console.log(`\n[ascii] ${src}`);
-  const ascii = await imageToAscii(src, 76);
-  if (!ascii) {
-    console.log("[ascii] failed to fetch/decode image");
+  console.log(`\n[pixels] ${src}`);
+  const pixels = await imageToPixels(src, 76);
+  if (!pixels) {
+    console.log("[pixels] failed to fetch/decode image");
   } else {
-    for (const runs of ascii) {
-      console.log(runs.map((r) => `${hexToAnsi(r.fg)}${r.text}`).join("") + "\x1b[0m");
+    for (const runs of pixels) {
+      console.log(
+        runs.map((r) => `${hexToAnsi(r.fg, 38)}${hexToAnsi(r.bg, 48)}${r.text}`).join("") +
+          "\x1b[0m",
+      );
     }
   }
 } else {
-  console.log("\n[ascii] no post with an image in the snapshot");
+  console.log("\n[pixels] no post with an image in the snapshot");
 }
 
 client.stop();
