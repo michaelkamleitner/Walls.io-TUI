@@ -103,7 +103,14 @@ async function composeMap(
 }
 
 // Paint one cell of a rendered pixel image (splitting the run it sits in).
-function paintCell(image: PixelImage, row: number, col: number, ch: string, fg: string) {
+function paintCell(
+  image: PixelImage,
+  row: number,
+  col: number,
+  ch: string,
+  fg: string,
+  bg?: string,
+) {
   const line = image[row];
   if (!line) return;
   let x = 0;
@@ -114,7 +121,7 @@ function paintCell(image: PixelImage, row: number, col: number, ch: string, fg: 
       const idx = col - x;
       const parts = [];
       if (idx > 0) parts.push({ text: chars.slice(0, idx).join(""), fg: run.fg, bg: run.bg });
-      parts.push({ text: ch, fg, bg: run.bg });
+      parts.push({ text: ch, fg, bg: bg ?? run.bg });
       if (idx + 1 < chars.length)
         parts.push({ text: chars.slice(idx + 1).join(""), fg: run.fg, bg: run.bg });
       line.splice(i, 1, ...parts);
@@ -124,13 +131,16 @@ function paintCell(image: PixelImage, row: number, col: number, ch: string, fg: 
   }
 }
 
-// The marker: a circle spanning two cells (◖◗) — cells are ~1:2, so two
-// side by side read as one large round dot, twice the size of a
-// single-cell ◉.
+// The marker: a solid 2×2-cell orange block — amber on both layers so no
+// font gap shows the map through it.
 function paintMarker(image: PixelImage, row: number, col: number) {
-  const start = Math.max(0, col - 1);
-  paintCell(image, row, start, "◖", theme.amber);
-  paintCell(image, row, start + 1, "◗", theme.amber);
+  const r0 = Math.max(0, row - 1);
+  const c0 = Math.max(0, col - 1);
+  for (const r of [r0, r0 + 1]) {
+    for (const c of [c0, c0 + 1]) {
+      paintCell(image, r, c, "█", theme.amber, theme.amber);
+    }
+  }
 }
 
 const memo = new Map<string, Promise<PixelImage | null>>();
