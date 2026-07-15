@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Walls.TUI — your social wall, in the terminal</title>
+  <meta name="description" content="Walls.TUI streams your walls.io social wall straight into the terminal: photos in 64 shades of half-block pixels, ffmpeg video slideshows, rasterized OpenStreetMap layouts and more. No browser required.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23050807'/%3E%3Crect x='2' y='2' width='12' height='6' fill='%2333ff66'/%3E%3Crect x='2' y='9' width='12' height='5' fill='%231e9c46'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=VT323&family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="crt" aria-hidden="true"></div>
+
+  <!-- ── tmux-style top bar ─────────────────────────────────────────── -->
+  <header class="statusbar">
+    <div class="statusbar-inner">
+      <span class="status-session">[walls.tui]</span>
+      <nav class="status-windows">
+        <a href="#features">1:features</a>
+        <a href="#layouts">2:layouts</a>
+        <a href="#manual">3:man</a>
+        <a href="#install" class="active">4:install*</a>
+      </nav>
+      <span class="status-right">
+        <span class="status-live"><span class="pulse"></span>LIVE</span>
+        <a class="status-gh" href="https://github.com/michaelkamleitner/Walls.io-TUI" target="_blank" rel="noopener">github ↗</a>
+      </span>
+    </div>
+  </header>
+
+  <!-- ── hero ───────────────────────────────────────────────────────── -->
+  <main>
+    <section class="hero">
+      <div class="hero-copy reveal">
+        <p class="hero-kicker">// a walls.io experiment</p>
+        <h1 class="hero-title">
+          Your social wall.<br>
+          <span class="accent">Eighty columns</span><br>
+          of glory.
+        </h1>
+        <p class="hero-sub">
+          <strong>Walls.TUI</strong> streams your <a href="https://walls.io" target="_blank" rel="noopener">walls.io</a> wall
+          over a raw socket and renders it where you actually live: the terminal.
+          Photos in 64 shades of half-block phosphor. Videos, frame-extracted and looping.
+          Maps, rasterized tile by tile. Nine layouts. Zero browsers.
+        </p>
+        <div class="hero-actions">
+          <a class="btn btn-solid" href="https://github.com/michaelkamleitner/Walls.io-TUI" target="_blank" rel="noopener">[ VIEW ON GITHUB ]</a>
+          <a class="btn btn-ghost" href="#install">$ install --now</a>
+        </div>
+        <p class="hero-meta">Node ≥ 20 · truecolor terminal · MIT-hearted · built on OpenTUI + Bun</p>
+      </div>
+
+      <div class="hero-term reveal">
+        <div class="term-window" id="hero-term">
+          <div class="term-titlebar">
+            <span class="term-dot"></span><span class="term-dot"></span><span class="term-dot"></span>
+            <span class="term-title">wall@localhost — 100×32</span>
+          </div>
+          <pre class="term-screen" id="term-screen" aria-label="Animated terminal demo of Walls.TUI"></pre>
+        </div>
+        <p class="term-caption">↑ actual rendering technique. each character cell = two pixels. yes, really.</p>
+      </div>
+    </section>
+
+    <!-- ── ticker strip ─────────────────────────────────────────────── -->
+    <div class="ticker" aria-hidden="true">
+      <div class="ticker-track" id="ticker-track">
+        <span>▌ NO BROWSER</span><span>▌ NO ELECTRON</span><span>▌ 71&nbsp;MB SINGLE BINARY</span><span>▌ 64 SHADES OF GRAY</span><span>▌ LIVE OVER WEBSOCKET</span><span>▌ FFMPEG VIDEO SLIDESHOWS</span><span>▌ OPENSTREETMAP, RASTERIZED</span><span>▌ 9 LAYOUTS</span><span>▌ OSC-8 HYPERLINKS</span><span>▌ WORKS OVER SSH</span>
+      </div>
+    </div>
+
+    <!-- ── features ─────────────────────────────────────────────────── -->
+    <section class="section" id="features">
+      <h2 class="section-title reveal"><span class="section-no">01</span> stdout, but make it social</h2>
+      <div class="feature-grid">
+        <article class="feature reveal">
+          <div class="feature-glyph">▀▄▀</div>
+          <h3>Real pictures. Real characters.</h3>
+          <p>Every photo is rasterized into half-block pixels — the <code>▀</code> glyph, foreground up, background down — quantized to 64 shades and contrast-stretched. Chunky. Legible. Beautiful in a way JPEG forgot.</p>
+        </article>
+        <article class="feature reveal">
+          <div class="feature-glyph">▶ ▶ ▶</div>
+          <h3>Video, the honest way.</h3>
+          <p>ffmpeg pulls ten frames straight off the source CDN, spread across the clip, cached on disk. They loop as a slideshow at 0.8&nbsp;s per frame. It's not 60 fps. It's better: it's <em>in your terminal</em>.</p>
+        </article>
+        <article class="feature reveal">
+          <div class="feature-glyph">◉</div>
+          <h3>Cartography included.</h3>
+          <p>Geotagged posts render on live OpenStreetMap tiles — fetched, composited, rasterized, and stamped with a glowing anti-aliased marker. A world map. Made of text. Your GIS friends will weep.</p>
+        </article>
+        <article class="feature reveal">
+          <div class="feature-glyph">⇥ ←→ ↵</div>
+          <h3>Keyboard-native.</h3>
+          <p><code>Tab</code> through posts, arrow through every hyperlink, <code>Enter</code> to open in the browser (fine, <em>one</em> browser use). OSC-8 escapes make links Cmd-clickable in modern terminals.</p>
+        </article>
+        <article class="feature reveal">
+          <div class="feature-glyph">●━━</div>
+          <h3>Live. Actually live.</h3>
+          <p>A Socket.IO feed pushes new posts, edits, pins and moderation the moment they happen — the same protocol the real wall uses. No polling. No refresh. Just <code>tail -f</code> for your community.</p>
+        </article>
+        <article class="feature reveal">
+          <div class="feature-glyph">$ _</div>
+          <h3>One file. Anywhere.</h3>
+          <p><code>npm run build</code> compiles everything — TypeScript, React, the native renderer — into a single self-contained executable. Copy it to a kiosk, a Pi, a server rack. It just runs.</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- ── layouts ──────────────────────────────────────────────────── -->
+    <section class="section" id="layouts">
+      <h2 class="section-title reveal"><span class="section-no">02</span> nine layouts. one keypress.</h2>
+      <p class="section-sub reveal">Press <kbd>l</kbd> and the whole wall reshapes itself. (Try pressing it on this page. Go on.)</p>
+      <div class="layout-grid">
+        <article class="pane reveal" data-name="FLUID">
+          <pre aria-hidden="true">
+┌──┐ ┌──┐ ┌──┐
+│▒▒│ │▒▒│ │██│
+│██│ └──┘ │▒▒│
+└──┘ ┌──┐ └──┘
+┌──┐ │██│ ┌──┐</pre>
+          <h3>fluid</h3><p>Masonry feed, 1–6 columns, infinite scroll.</p>
+        </article>
+        <article class="pane reveal" data-name="KIOSK">
+          <pre aria-hidden="true">
+┌──────┬─────┐
+│██████│▌name│
+│██████│·····│
+│██████│·····│
+└──────┴─────┘</pre>
+          <h3>kiosk</h3><p>One post, huge. Auto-advances every 5&nbsp;s.</p>
+        </article>
+        <article class="pane reveal" data-name="MAP">
+          <pre aria-hidden="true">
+░░░▒▒░░░░░░░░░
+░░░░░░◉░░▒▒░░░
+░▒░░░░░░░░░░▒░
+░░░┌────────┐░
+░░░│▌post···│░</pre>
+          <h3>map</h3><p>Each geotagged post on its own OSM view.</p>
+        </article>
+        <article class="pane reveal" data-name="WORLD">
+          <pre aria-hidden="true">
+░░◉░░░░░░░░░░░
+░░░░░▒▒░░░◉░░░
+░░◉░░░░░░░░░░░
+░░░░░░░◉░░░▒░░
+░░░░░░░░░░░░░░</pre>
+          <h3>world</h3><p>Every location on one auto-fit world map.</p>
+        </article>
+        <article class="pane reveal" data-name="TICKER">
+          <pre aria-hidden="true">
+[10:53] ▌ana ·
+   nice shot!
+[10:55] ▌ben ·
+   we're live…
+[10:58] ▌cyd ·</pre>
+          <h3>ticker</h3><p>Chronological live tail. Sticks to the bottom.</p>
+        </article>
+        <article class="pane reveal" data-name="THEATER">
+          <pre aria-hidden="true">
+██████████████
+██████████████
+██████████████
+██████████████
+▌author › text</pre>
+          <h3>theater</h3><p>Full-bleed photos with real dissolve fades.</p>
+        </article>
+        <article class="pane reveal" data-name="DASHBOARD">
+          <pre aria-hidden="true">
+TW ██████ 45
+IG ███ 22
+▁▂▄▅▇█▅▃▂▁▂▃
+1. ▌top author</pre>
+          <h3>dashboard</h3><p>Bars, sparkline, leaderboard. Mission control.</p>
+        </article>
+        <article class="pane reveal" data-name="CHANNELS">
+          <pre aria-hidden="true">
+▌TW 45│▌IG 22
+┌───┐ │┌───┐
+│▒▒▒│ ││███│
+└───┘ │└───┘
+┌───┐ │┌───┐</pre>
+          <h3>channels</h3><p>One scrolling column per network.</p>
+        </article>
+        <article class="pane reveal pane-bounce" data-name="SCREENSAVER">
+          <pre aria-hidden="true">
+··············
+··············
+··············
+··············
+··············</pre>
+          <div class="bounce-card">┌▌post─┐<br>│ text │<br>└──────┘</div>
+          <h3>screensaver</h3><p>Cards bounce, DVD-logo style. You know why.</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- ── man page ─────────────────────────────────────────────────── -->
+    <section class="section" id="manual">
+      <h2 class="section-title reveal"><span class="section-no">03</span> RTFM (it's a good M)</h2>
+      <div class="man-page reveal">
+        <div class="man-header"><span>WALLS-TUI(1)</span><span>User Commands</span><span>WALLS-TUI(1)</span></div>
+        <dl class="man-body">
+          <dt>NAME</dt>
+          <dd><b>walls-tui</b> — render a walls.io social wall in glorious text</dd>
+          <dt>SYNOPSIS</dt>
+          <dd><b>walls-tui</b> [<i>--wall</i> id] [<i>--network</i> name] [<i>--layout</i> fluid|kiosk|map|world|ticker|theater|dashboard|channels|screensaver]</dd>
+          <dt>DESCRIPTION</dt>
+          <dd>Connects to the walls.io broadcaster, keeps a deduplicated, weight-sorted post buffer, and renders it live. Hidden posts vanish. Pinned posts float. Nobody touches a mouse.</dd>
+          <dt>KEYBINDINGS</dt>
+          <dd class="man-keys">
+            <span><kbd>l</kbd> cycle layout</span>
+            <span><kbd>Tab</kbd> focus post</span>
+            <span><kbd>←</kbd><kbd>→</kbd> walk links</span>
+            <span><kbd>↵</kbd> open in browser</span>
+            <span><kbd>Space</kbd> next slide</span>
+            <span><kbd>j</kbd><kbd>k</kbd> scroll</span>
+            <span><kbd>r</kbd> reload</span>
+            <span><kbd>q</kbd> quit</span>
+          </dd>
+          <dt>FILES</dt>
+          <dd><code>~/.cache/walls-tui/frames/</code> — extracted video frames<br><code>~/.cache/walls-tui/tiles/</code> — OpenStreetMap tiles</dd>
+          <dt>SEE ALSO</dt>
+          <dd><a href="https://walls.io" target="_blank" rel="noopener">walls.io</a>, <a href="https://github.com/anomalyco/opentui" target="_blank" rel="noopener">opentui(7)</a>, your terminal's truecolor settings, the good old days</dd>
+        </dl>
+      </div>
+    </section>
+
+    <!-- ── install ──────────────────────────────────────────────────── -->
+    <section class="section" id="install">
+      <h2 class="section-title reveal"><span class="section-no">04</span> install in four lines</h2>
+      <div class="install-grid">
+        <div class="install-main reveal">
+          <div class="codeblock">
+            <div class="codeblock-bar"><span>~ / anywhere-you-like</span>
+              <button class="copy-btn" data-copy="git clone https://github.com/michaelkamleitner/Walls.io-TUI.git&#10;cd Walls.io-TUI&#10;npm install&#10;npm start">copy</button>
+            </div>
+            <pre><code><span class="p">$</span> git clone https://github.com/michaelkamleitner/Walls.io-TUI.git
+<span class="p">$</span> cd Walls.io-TUI
+<span class="p">$</span> npm install
+<span class="p">$</span> npm start</code></pre>
+          </div>
+          <div class="codeblock">
+            <div class="codeblock-bar"><span>your wall, your rules</span>
+              <button class="copy-btn" data-copy="npm start -- --wall 139355 --layout kiosk">copy</button>
+            </div>
+            <pre><code><span class="p">$</span> npm start -- --wall <span class="hl">139355</span> --layout <span class="hl">kiosk</span>
+<span class="c"># any public walls.io wall id · any of the 9 layouts</span></code></pre>
+          </div>
+          <div class="codeblock">
+            <div class="codeblock-bar"><span>or: one binary to rule them all</span>
+              <button class="copy-btn" data-copy="npm run build&#10;./walls-tui --wall 139355">copy</button>
+            </div>
+            <pre><code><span class="p">$</span> npm run build          <span class="c"># → ./walls-tui (self-contained, ~71 MB)</span>
+<span class="p">$</span> cp walls-tui /usr/local/bin/
+<span class="p">$</span> walls-tui              <span class="c"># from anywhere. even over ssh.</span></code></pre>
+          </div>
+        </div>
+        <aside class="install-side reveal">
+          <h3>// requirements</h3>
+          <ul class="req-list">
+            <li><b>Node ≥ 20</b> + npm. Bun installs locally as a dev dep — nothing global.</li>
+            <li><b>A truecolor terminal.</b> Ghostty, iTerm2, WezTerm, Kitty, Windows Terminal. 16 colors will not do 64 grays.</li>
+            <li><b>ffmpeg</b> <i>(optional)</i> — unlocks video slideshows.</li>
+            <li><b>A walls.io wall.</b> Yours, or someone's public one.</li>
+          </ul>
+          <a class="btn btn-solid btn-block" href="https://github.com/michaelkamleitner/Walls.io-TUI" target="_blank" rel="noopener">[ STAR IT ON GITHUB ]</a>
+        </aside>
+      </div>
+    </section>
+  </main>
+
+  <!-- ── footer ─────────────────────────────────────────────────────── -->
+  <footer class="footer">
+    <pre class="footer-exit" aria-hidden="true">$ q
+[wall disconnected — 0 posts dropped, obviously]
+$ exit 0</pre>
+    <p>
+      A <a href="https://walls.io" target="_blank" rel="noopener">walls.io</a> experiment ·
+      <a href="https://github.com/michaelkamleitner/Walls.io-TUI" target="_blank" rel="noopener">source on GitHub</a> ·
+      built with <a href="https://github.com/anomalyco/opentui" target="_blank" rel="noopener">OpenTUI</a>, Bun &amp; an unhealthy love for the ▀ character
+    </p>
+  </footer>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
+</body>
+</html>
