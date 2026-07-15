@@ -190,11 +190,9 @@ export function PostCard({ post, innerWidth, now, selected }: PostCardProps) {
         </box>
       ) : null}
 
-      {post.is_video ? (
+      {post.is_video && !slideshow ? (
         <text fg={theme.dim} style={{ marginTop: 1 }}>
-          {slideshow
-            ? `▶ VIDEO · frame ${slideshow.index + 1}/${slideshow.count} · watch at the source ↗`
-            : "▶ VIDEO — watch at the source ↗"}
+          ▶ VIDEO — watch at the source ↗
         </text>
       ) : null}
 

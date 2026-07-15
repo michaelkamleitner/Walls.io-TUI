@@ -113,7 +113,7 @@ export function estimateCardHeight(post: Post, innerWidth: number): number {
     // pixels.ts render().
     h += 1 + Math.min(IMAGE_MAX_ROWS, Math.max(1, Math.round((innerWidth * ratio) / 2)));
   }
-  if (post.is_video) h += 2;
+  // Playing slideshows carry no indicator line, so videos add no extra rows.
   if (parseCta(post)) h += 2;
   return h;
 }
