@@ -7,7 +7,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { ScrollBoxRenderable } from "@opentui/core";
 
-const AUTOSCROLL_TICK_MS = 100;
+const AUTOSCROLL_TICK_MS = 200;
 const AUTOSCROLL_STEP = 1; // rows per tick
 const AUTOSCROLL_PAGES = 10; // viewport-heights per leg
 
