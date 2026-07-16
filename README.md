@@ -34,6 +34,7 @@ npm start                        # default wall
 npm start -- --wall 139355       # any other wall id
 npm start -- --network twitter   # restrict to one network
 npm start -- --layout kiosk      # start in the kiosk slideshow
+npm start -- --demo              # cycle through all layouts, 60 s each
 ```
 
 ## Standalone binary (nicer than npm start)
@@ -136,6 +137,7 @@ scroll it. Screensaver: `Space` pauses. Dashboard has no keys of its own.
 | `--wall <id>`     | `186670` | walls.io wall id to subscribe to          |
 | `--network <net>` | all      | only show one network (e.g. `instagram`)  |
 | `--layout <name>` | `fluid`  | starting layout: `fluid`, `kiosk`, `map`, `world`, `ticker`, `theater`, `dashboard`, `channels`, `screensaver` |
+| `--demo`          | off      | demo mode: cycle through all layouts, 60 s each |
 
 ## How it works
 

@@ -87,13 +87,17 @@ const STATUS_LABEL: Record<WallStatus, { text: string; color: string }> = {
   error: { text: "✕ RETRYING", color: theme.red },
 };
 
+// Demo mode: how long each layout stays on screen before advancing.
+const DEMO_INTERVAL_MS = 60_000;
+
 export interface AppProps {
   wallId: number;
   network?: string;
   initialLayout?: LayoutName;
+  demo?: boolean;
 }
 
-export function App({ wallId, network, initialLayout = "fluid" }: AppProps) {
+export function App({ wallId, network, initialLayout = "fluid", demo = false }: AppProps) {
   const client = useMemo(
     () => createWallClient({ wallId, network, initialCount: INITIAL_POSTS }),
     [wallId, network],
@@ -133,6 +137,17 @@ export function App({ wallId, network, initialLayout = "fluid" }: AppProps) {
     const t = setInterval(() => setNow(Date.now()), 30_000);
     return () => clearInterval(t);
   }, []);
+
+  // Demo mode: advance to the next layout every DEMO_INTERVAL_MS. Keyed on
+  // `layout` so a manual `l` press restarts the countdown for the new layout.
+  useEffect(() => {
+    if (!demo) return;
+    const t = setTimeout(
+      () => setLayout((l) => LAYOUTS[(LAYOUTS.indexOf(l) + 1) % LAYOUTS.length]),
+      DEMO_INTERVAL_MS,
+    );
+    return () => clearTimeout(t);
+  }, [demo, layout]);
 
   // Global keys; everything layout-specific lives in the layout components.
   useKeyboard((key) => {
@@ -181,6 +196,9 @@ export function App({ wallId, network, initialLayout = "fluid" }: AppProps) {
             <span fg={theme.text}>{posts.length}</span> POSTS
             <span fg={theme.dim}> · </span>
             <span fg={theme.text}>{layout.toUpperCase()}</span>
+            {demo ? (
+              <span fg={theme.amber}> · DEMO</span>
+            ) : null}
           </text>
           <text fg={statusInfo.color} attributes={TextAttributes.BOLD}>
             {statusInfo.text}

@@ -5,6 +5,7 @@
  *   npm start -- --wall 139355 # another wall (same idea as ?id= on the web)
  *   npm start -- --network twitter
  *   npm start -- --layout kiosk|map|fluid
+ *   npm start -- --demo            # cycle through all layouts every 60 s
  */
 import { createCliRenderer } from "@opentui/core";
 import { createRoot } from "@opentui/react";
@@ -22,12 +23,17 @@ function argValue(name: string): string | undefined {
   return inline ? inline.split("=").slice(1).join("=") : undefined;
 }
 
+function hasFlag(name: string): boolean {
+  return process.argv.slice(2).some((a) => a === `--${name}` || a.startsWith(`--${name}=`));
+}
+
 const wallId = Number(argValue("wall")) || DEFAULT_WALL_ID;
 const network = argValue("network");
 const layoutArg = (argValue("layout") || "fluid").toLowerCase() as LayoutName;
 const initialLayout: LayoutName = LAYOUTS.includes(layoutArg) ? layoutArg : "fluid";
+const demo = hasFlag("demo");
 
 const renderer = await createCliRenderer({ targetFps: 30 });
 createRoot(renderer).render(
-  <App wallId={wallId} network={network} initialLayout={initialLayout} />,
+  <App wallId={wallId} network={network} initialLayout={initialLayout} demo={demo} />,
 );
