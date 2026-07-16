@@ -7,6 +7,7 @@
 import { useMemo, useRef, useState } from "react";
 import { ScrollBoxRenderable, TextAttributes } from "@opentui/core";
 import { useKeyboard, useRenderer } from "@opentui/react";
+import { useAutoScroll } from "./autoscroll";
 import { PostCard } from "./PostCard";
 import { networkBadge, networkColor, theme } from "./theme";
 import type { Post } from "./wall-client";
@@ -22,6 +23,8 @@ export function ChannelsLayout({ posts, now, width }: ChannelsLayoutProps) {
   const activeRef = useRef(0);
   const scrollRefs = useRef<Array<ScrollBoxRenderable | null>>([]);
   const renderer = useRenderer();
+  // Drives every visible column at once, not just the active one.
+  const autoScroll = useAutoScroll(() => scrollRefs.current);
 
   const channels = useMemo(() => {
     const byType = new Map<string, Post[]>();
@@ -69,6 +72,9 @@ export function ChannelsLayout({ posts, now, width }: ChannelsLayoutProps) {
       case "u":
       case "pageup":
         sb?.scrollBy(-page);
+        break;
+      case "s":
+        autoScroll.toggle();
         break;
     }
   });

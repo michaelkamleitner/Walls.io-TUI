@@ -7,6 +7,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ScrollBoxRenderable, TextAttributes } from "@opentui/core";
 import { useKeyboard, useRenderer } from "@opentui/react";
+import { useAutoScroll } from "./autoscroll";
 import { linkId, postBody, postLinks } from "./links";
 import { distribute } from "./masonry";
 import { openInBrowser } from "./open";
@@ -31,6 +32,7 @@ export function FluidLayout({ client, posts, now, width }: FluidLayoutProps) {
   const activePostRef = useRef<string | null>(null);
   const scrollRef = useRef<ScrollBoxRenderable>(null);
   const renderer = useRenderer();
+  const autoScroll = useAutoScroll(() => [scrollRef.current]);
 
   const selectLink = (id: string | null) => {
     selectedLinkRef.current = id;
@@ -153,6 +155,9 @@ export function FluidLayout({ client, posts, now, width }: FluidLayoutProps) {
       case "u":
       case "pageup":
         sb?.scrollBy(-page);
+        break;
+      case "s":
+        autoScroll.toggle();
         break;
     }
   });

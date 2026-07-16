@@ -46,6 +46,7 @@ const KEY_HINTS: Record<LayoutName, Array<[string, string]>> = {
     ["↵", "open"],
     ["j/k", "scroll"],
     ["d/u", "page"],
+    ["s", "auto-scroll"],
   ],
   kiosk: [
     ["space/→", "next"],
@@ -76,6 +77,7 @@ const KEY_HINTS: Record<LayoutName, Array<[string, string]>> = {
     ["←/→", "column"],
     ["j/k", "scroll"],
     ["d/u", "page"],
+    ["s", "auto-scroll"],
   ],
   screensaver: [["space", "pause"]],
 };
