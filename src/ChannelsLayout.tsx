@@ -16,15 +16,16 @@ export interface ChannelsLayoutProps {
   posts: Post[];
   now: number;
   width: number;
+  autoScroll: boolean;
 }
 
-export function ChannelsLayout({ posts, now, width }: ChannelsLayoutProps) {
+export function ChannelsLayout({ posts, now, width, autoScroll }: ChannelsLayoutProps) {
   const [active, setActive] = useState(0);
   const activeRef = useRef(0);
   const scrollRefs = useRef<Array<ScrollBoxRenderable | null>>([]);
   const renderer = useRenderer();
   // Drives every visible column at once, not just the active one.
-  const autoScroll = useAutoScroll(() => scrollRefs.current);
+  useAutoScroll(autoScroll, () => scrollRefs.current);
 
   const channels = useMemo(() => {
     const byType = new Map<string, Post[]>();
@@ -72,9 +73,6 @@ export function ChannelsLayout({ posts, now, width }: ChannelsLayoutProps) {
       case "u":
       case "pageup":
         sb?.scrollBy(-page);
-        break;
-      case "s":
-        autoScroll.toggle();
         break;
     }
   });

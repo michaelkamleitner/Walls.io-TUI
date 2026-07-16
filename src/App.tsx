@@ -38,7 +38,8 @@ export const LAYOUTS: LayoutName[] = [
   "screensaver",
 ];
 
-// Layout-specific key hints (l/r/q are appended for every layout).
+// Layout-specific key hints (the dynamic "s auto-scroll on/off" hint for
+// fluid/channels plus l/r/q are appended in the footer).
 const KEY_HINTS: Record<LayoutName, Array<[string, string]>> = {
   fluid: [
     ["⇥", "posts"],
@@ -46,7 +47,6 @@ const KEY_HINTS: Record<LayoutName, Array<[string, string]>> = {
     ["↵", "open"],
     ["j/k", "scroll"],
     ["d/u", "page"],
-    ["s", "auto-scroll"],
   ],
   kiosk: [
     ["space/→", "next"],
@@ -77,7 +77,6 @@ const KEY_HINTS: Record<LayoutName, Array<[string, string]>> = {
     ["←/→", "column"],
     ["j/k", "scroll"],
     ["d/u", "page"],
-    ["s", "auto-scroll"],
   ],
   screensaver: [["space", "pause"]],
 };
@@ -105,6 +104,7 @@ export function App({ wallId, network, initialLayout = "fluid", demo = false }: 
     [wallId, network],
   );
   const [layout, setLayout] = useState<LayoutName>(initialLayout);
+  const [autoScroll, setAutoScroll] = useState(true);
   const [posts, setPosts] = useState<Post[]>([]);
   const [status, setStatus] = useState<WallStatus>("connecting");
   const [exhausted, setExhausted] = useState(false);
@@ -163,6 +163,11 @@ export function App({ wallId, network, initialLayout = "fluid", demo = false }: 
       case "r":
         client.restart();
         break;
+      case "s":
+        // Only meaningful where a feed scrolls; keep the state untouched
+        // elsewhere so a stray press doesn't flip it invisibly.
+        if (layout === "fluid" || layout === "channels") setAutoScroll((a) => !a);
+        break;
     }
   });
 
@@ -213,7 +218,7 @@ export function App({ wallId, network, initialLayout = "fluid", demo = false }: 
       </text>
 
       {layout === "fluid" ? (
-        <FluidLayout client={client} posts={posts} now={now} width={width} />
+        <FluidLayout client={client} posts={posts} now={now} width={width} autoScroll={autoScroll} />
       ) : layout === "kiosk" ? (
         <KioskLayout posts={posts} now={now} width={width} height={height} />
       ) : layout === "map" ? (
@@ -227,7 +232,7 @@ export function App({ wallId, network, initialLayout = "fluid", demo = false }: 
       ) : layout === "dashboard" ? (
         <DashboardLayout posts={posts} now={now} width={width} />
       ) : layout === "channels" ? (
-        <ChannelsLayout posts={posts} now={now} width={width} />
+        <ChannelsLayout posts={posts} now={now} width={width} autoScroll={autoScroll} />
       ) : (
         <ScreensaverLayout posts={posts} now={now} width={width} height={height} />
       )}
@@ -243,8 +248,15 @@ export function App({ wallId, network, initialLayout = "fluid", demo = false }: 
         }}
       >
         <text fg={theme.dim} style={{ wrapMode: "none", flexShrink: 1 }}>
-          {[...KEY_HINTS[layout], ["l", "layout"], ["r", "reload"], ["q", "quit"]].map(
-            ([k, label], i) => (
+          {[
+            ...KEY_HINTS[layout],
+            ...(layout === "fluid" || layout === "channels"
+              ? [["s", `auto-scroll ${autoScroll ? "on" : "off"}`]]
+              : []),
+            ["l", "layout"],
+            ["r", "reload"],
+            ["q", "quit"],
+          ].map(([k, label], i) => (
               <span key={i}>
                 {i > 0 ? " · " : ""}
                 <span fg={theme.green}>{k}</span> {label}

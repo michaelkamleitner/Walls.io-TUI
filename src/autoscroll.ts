@@ -1,18 +1,21 @@
 /*
- * Auto-scroll ("s" to toggle): slowly drives one or more scrollboxes down
- * for AUTOSCROLL_PAGES viewport-heights, then back up, ping-ponging until
- * toggled off. Layouts pass the scrollboxes to drive; a box that runs out
+ * Auto-scroll ("s" to toggle, on by default): slowly drives one or more
+ * scrollboxes down for AUTOSCROLL_PAGES viewport-heights, then back up,
+ * ping-ponging while enabled. The on/off state lives in App (it feeds the
+ * footer hint); layouts pass the scrollboxes to drive. A box that runs out
  * of content early just waits at its edge until the direction flips.
  */
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import type { ScrollBoxRenderable } from "@opentui/core";
 
 const AUTOSCROLL_TICK_MS = 200;
 const AUTOSCROLL_STEP = 1; // rows per tick
 const AUTOSCROLL_PAGES = 10; // viewport-heights per leg
 
-export function useAutoScroll(getTargets: () => Array<ScrollBoxRenderable | null | undefined>) {
-  const [scrolling, setScrolling] = useState(false);
+export function useAutoScroll(
+  enabled: boolean,
+  getTargets: () => Array<ScrollBoxRenderable | null | undefined>,
+) {
   const dirRef = useRef<1 | -1>(1);
   const traveledRef = useRef(0);
   // Always read the latest closure without re-arming the interval.
@@ -20,7 +23,7 @@ export function useAutoScroll(getTargets: () => Array<ScrollBoxRenderable | null
   getTargetsRef.current = getTargets;
 
   useEffect(() => {
-    if (!scrolling) return;
+    if (!enabled) return;
     dirRef.current = 1;
     traveledRef.current = 0;
     const t = setInterval(() => {
@@ -43,7 +46,5 @@ export function useAutoScroll(getTargets: () => Array<ScrollBoxRenderable | null
       traveledRef.current += AUTOSCROLL_STEP;
     }, AUTOSCROLL_TICK_MS);
     return () => clearInterval(t);
-  }, [scrolling]);
-
-  return { scrolling, toggle: () => setScrolling((s) => !s) };
+  }, [enabled]);
 }

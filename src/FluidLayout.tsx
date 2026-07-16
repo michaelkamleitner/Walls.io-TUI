@@ -20,9 +20,10 @@ export interface FluidLayoutProps {
   posts: Post[];
   now: number;
   width: number;
+  autoScroll: boolean;
 }
 
-export function FluidLayout({ client, posts, now, width }: FluidLayoutProps) {
+export function FluidLayout({ client, posts, now, width, autoScroll }: FluidLayoutProps) {
   const [selectedLink, setSelectedLink] = useState<string | null>(null);
   const [activePost, setActivePost] = useState<string | null>(null);
   // Mirrors that update synchronously — rapid/held key presses arrive
@@ -32,7 +33,7 @@ export function FluidLayout({ client, posts, now, width }: FluidLayoutProps) {
   const activePostRef = useRef<string | null>(null);
   const scrollRef = useRef<ScrollBoxRenderable>(null);
   const renderer = useRenderer();
-  const autoScroll = useAutoScroll(() => [scrollRef.current]);
+  useAutoScroll(autoScroll, () => [scrollRef.current]);
 
   const selectLink = (id: string | null) => {
     selectedLinkRef.current = id;
@@ -155,9 +156,6 @@ export function FluidLayout({ client, posts, now, width }: FluidLayoutProps) {
       case "u":
       case "pageup":
         sb?.scrollBy(-page);
-        break;
-      case "s":
-        autoScroll.toggle();
         break;
     }
   });
