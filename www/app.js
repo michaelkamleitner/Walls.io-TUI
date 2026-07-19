@@ -106,32 +106,33 @@
       '<span class="t-accent">100</span><span class="t-dim"> posts · layout: fluid</span>';
     await sleep(420);
 
+    // framed post card — pad every line to the same width as the image rows
+    const W = 56; // inner columns, matches the half-block image width
+    const sp = (n) => " ".repeat(Math.max(0, n));
+    const vis = (html) => [...html.replace(/<[^>]*>/g, "")].length;
+    const framed = (inner) =>
+      line(`<span class="t-dim">│ </span>${inner}${sp(W - vis(inner))}<span class="t-dim"> │</span>`);
+
     line("");
-    line('<span class="t-dim">┌─ TWITTER ──────────────────────────────────────────────┐</span>');
-    line(
-      '<span class="t-dim">│</span> <span class="t-accent t-bold">▌jess @ the show</span>' +
-      '                              <span class="t-dim">2 min ago │</span>',
-    );
-    line('<span class="t-dim">│</span>                                                        <span class="t-dim">│</span>');
-    line(
-      '<span class="t-dim">│</span> front row. terminal crowd goes wild.' +
-      ' <span class="t-accent">#wallstui</span>        <span class="t-dim">│</span>',
-    );
-    line('<span class="t-dim">│</span>                                                        <span class="t-dim">│</span>');
+    line(`<span class="t-dim">┌─ TWITTER ${"─".repeat(W - 8)}┐</span>`);
+    const author = '<span class="t-accent t-bold">▌jess @ the show</span>';
+    const age = '<span class="t-dim">2 min ago</span>';
+    framed(`${author}${sp(W - vis(author) - vis(age))}${age}`);
+    framed("");
+    framed('front row. terminal crowd goes wild. <span class="t-accent">#wallstui</span>');
+    framed("");
     await sleep(500);
 
-    const imgStatus = line('<span class="t-dim">│ ░▒▓ receiving image…                                   │</span>');
+    const imgStatus = framed('<span class="t-dim">░▒▓ receiving image…</span>');
     await sleep(850);
 
-    const cols = 56;
-    const rows = 13;
-    const img = buildHalfblockImage(cols, rows);
+    const img = buildHalfblockImage(W, 13);
     imgStatus.remove();
     for (const rowHtml of img) {
       line(`<span class="t-dim">│ </span>${rowHtml}<span class="t-dim"> │</span>`);
       await sleep(52);
     }
-    line('<span class="t-dim">└────────────────────────────────────────────────────────┘</span>');
+    line(`<span class="t-dim">└${"─".repeat(W + 2)}┘</span>`);
     await sleep(300);
     line("");
     line(
@@ -146,6 +147,28 @@
   /* ── ticker: duplicate content for a seamless loop ─────────────────── */
   const track = document.getElementById("ticker-track");
   if (track) track.innerHTML += track.innerHTML;
+
+  /* ── layout panes: scale the ascii art to span the pane width ──────── */
+  const paneArts = document.querySelectorAll(".pane pre");
+  function fitPaneArt() {
+    for (const pre of paneArts) {
+      const rows = pre.textContent.split("\n").filter((l) => l.trim().length);
+      if (!rows.length) continue;
+      const cols = Math.max(...rows.map((l) => [...l].length));
+      pre.style.fontSize = "";
+      const base = parseFloat(getComputedStyle(pre).fontSize);
+      const probe = document.createElement("span");
+      probe.style.cssText = "position:absolute;visibility:hidden;white-space:pre";
+      probe.textContent = "█".repeat(cols);
+      pre.appendChild(probe);
+      const artWidth = probe.getBoundingClientRect().width;
+      probe.remove();
+      if (artWidth > 0) pre.style.fontSize = `${((base * pre.clientWidth) / artWidth) * 0.995}px`;
+    }
+  }
+  fitPaneArt();
+  document.fonts?.ready.then(fitPaneArt);
+  window.addEventListener("resize", fitPaneArt);
 
   /* ── reveal on scroll ──────────────────────────────────────────────── */
   const revealables = document.querySelectorAll(".reveal");
